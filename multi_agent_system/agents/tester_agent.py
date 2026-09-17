@@ -1,0 +1,187 @@
+"""
+multi_agent_system.agents.tester_agent
+====================================
+Agent Tester: Tiếp nhận task, mã nguồn các tệp và ngôn ngữ từ Planner/Coder,
+sinh kịch bản kiểm thử (Test Harness) đa tệp cho Python, Java, C,
+và cập nhật lại testcase khi nhận chỉ thị lỗi Testcase từ Reviewer.
+"""
+
+from typing import Dict, Optional
+from .base_agent import BaseAgent
+from .. import config
+import re
+import os
+
+class TesterAgent(BaseAgent):
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        base_url: Optional[str] = None
+    ):
+        super().__init__(
+            model_name=model_name or config.TESTER_MODEL,
+            base_url=base_url,
+            temperature=0.2
+        )
+
+    def _get_test_format_instructions(self, target_language: str) -> str:
+        lang_lower = target_language.lower()
+        if lang_lower == "python":
+            return """
+ĐỊNH DẠNG TESTCASE CHO PYTHON:
+Viết một lớp kế thừa `unittest.TestCase` kiểm tra toàn diện chức năng của hệ thống đa tệp.
+Ví dụ:
+import unittest
+# import các module từ dự án
+
+class TestMultiFileProject(unittest.TestCase):
+    def test_feature_a(self):
+        # gọi hàm/class
+        self.assertIsNotNone(...)
+"""
+        elif lang_lower == "java":
+            return """
+ĐỊNH DẠNG TESTCASE CHO JAVA:
+Viết một class `public class TestHarness` hoàn chỉnh chứa `public static void main(String[] args)`.
+LƯU Ý CỰC KỲ QUAN TRỌNG VỀ JAVA:
+1. TUYỆT ĐỐI KHÔNG KHAI BÁO `package ...;` vì file TestHarness.java nằm tại root thư mục dự án (default package).
+2. Hãy import các package cần thiết từ mã nguồn đã tạo (ví dụ: `import models.*; import services.*; import controllers.*;`).
+3. Khởi tạo đối tượng đúng constructor và truyền đúng tham số đã khai báo trong code của Coder.
+4. Nếu kiểm tra thất bại, ném ra RuntimeException:
+   if (result == null) {
+       throw new RuntimeException("Test failed: result is null");
+   }
+"""
+        else:  # c
+            return """
+ĐỊNH DẠNG TESTCASE CHO C:
+Viết một file C hoàn chỉnh có hàm `int main()` và các câu lệnh `assert(...)`.
+Ví dụ:
+#include <stdio.h>
+#include <assert.h>
+// #include các file header của dự án
+
+int main() {
+    assert(...);
+    printf("[PASS] All tests passed.\\n");
+    return 0;
+}
+"""
+
+    def generate_tests(
+        self,
+        task_goal: str,
+        files_dict: Dict[str, str],
+        target_language: str,
+        history_feedback: str = ""
+    ) -> str:
+        """
+        Sinh mã nguồn Test Harness kiểm thử toàn bộ hệ thống đa tệp.
+        """
+        code_overview = ""
+        for filepath, content in files_dict.items():
+            code_overview += f"\n--- TỆP: `{filepath}` ---\n```{target_language}\n{content}\n```\n"
+
+        history_section = f"\n### [LỊCH SỬ PHẢN HỒI]:\n{history_feedback}\n" if history_feedback else ""
+        fmt_instruction = self._get_test_format_instructions(target_language)
+
+        prompt = f"""BẠN LÀ SENIOR QA ENGINEER & AUTOMATION TEST EXPERT ({target_language.upper()}).
+Nhiệm vụ: Viết bộ kịch bản kiểm thử (Test Suite) toàn diện cho dự án đa tệp dưới đây.
+
+### [YÊU CẦU BÀI TOÁN GỐC]:
+{task_goal}
+
+### [MÃ NGUỒN CÁC TỆP ĐÃ SINH]:
+{code_overview}
+{history_section}
+### [QUY TẮC KIỂM THỬ]:
+1. Kiểm tra các chức năng chính và các trường hợp biên (edge cases).
+2. Kiểm tra sự phối hợp (integration) giữa các module/tệp tin.
+3. Test case PHẢI khách quan và tuân thủ đúng yêu cầu bài toán. Không tự bịa ra điều kiện vô lý.
+
+{fmt_instruction}
+
+### [YÊU CẦU ĐẦU RA]:
+CHỈ TRẢ VỀ DUY NHẤT MÃ KIỂM THỬ trong khối ```{target_language} ... ```. Không giải thích gì thêm.
+"""
+
+        raw_resp = self.call_llm(prompt)
+        clean_code = self.extract_code_block(raw_resp, language=target_language)
+        return clean_code if clean_code else raw_resp.strip()
+
+    def fix_tests(
+        self,
+        task_goal: str,
+        files_dict: Dict[str, str],
+        current_tests: str,
+        target_language: str,
+        reviewer_instructions: str,
+        error_log: str
+    ) -> str:
+        """
+        Sửa đổi lại testcase khi Reviewer xác định lỗi do Tester viết sai assertion hoặc điều kiện.
+        """
+        code_overview = ""
+        for filepath, content in files_dict.items():
+            code_overview += f"\n--- TỆP: `{filepath}` ---\n```{target_language}\n{content}\n```\n"
+
+        fmt_instruction = self._get_test_format_instructions(target_language)
+
+        prompt = f"""BẠN LÀ QA ENGINEER ({target_language.upper()}).
+Testcase của bạn đã gặp **LỖI TESTCASE (TESTER FAULTY)**: Reviewer xác định assertion sai kỳ vọng, kiểm tra điều kiện không có trong đề bài, hoặc gọi sai kiểu dữ liệu.
+
+### [YÊU CẦU BÀI TOÁN GỐC]:
+{task_goal}
+
+### [MÃ NGUỒN DỰ ÁN]:
+{code_overview}
+
+### [TESTCASE HIỆN TẠI]:
+```{target_language}
+{current_tests}
+```
+
+### [NHẬT KÝ LỖI SANDBOX]:
+{error_log}
+
+### [CHỈ THỊ SỬA TESTCASE TỪ REVIEWER]:
+{reviewer_instructions}
+
+{fmt_instruction}
+
+### [NHIỆM VỤ]:
+Viết lại mã nguồn kiểm thử chuẩn xác, sửa đúng các assertion bị sai.
+CHỈ TRẢ VỀ MÃ KIỂM THỬ trong khối ```{target_language} ... ```. Không giải thích gì thêm.
+"""
+
+        # Ensure clean_code is defined even if LLM returns no code block
+        clean_code = ""
+        raw_resp = self.call_llm(prompt)
+        clean_code = self.extract_code_block(raw_resp, language=target_language)
+
+        # Dynamic include fix for C test harness:
+        # For each #include "header.h" without a path, locate the actual file in the workspace
+        # (provided via files_dict) and replace with the correct relative path.
+        if target_language.lower() == "c":
+            # Find all include statements
+            include_pattern = r"#include\s+\"([^\"]+)\""
+            for match in re.finditer(include_pattern, clean_code):
+                inc = match.group(1)
+                # Skip if include already contains a directory separator
+                if os.path.sep in inc:
+                    continue
+                # Search for the header file in the workspace files_dict
+                matched_path = None
+                for filepath in files_dict.keys():
+                    if os.path.basename(filepath) == inc:
+                        matched_path = filepath
+                        break
+                if matched_path:
+                    # Use the workspace-relative path (e.g., "c/calculator.h")
+                    rel_path = matched_path.replace(os.path.sep, "/")
+                    clean_code = clean_code.replace(f'#include "{inc}"', f'#include "{rel_path}"')
+                # End of include handling
+
+
+
+        return clean_code if clean_code else raw_resp.strip()

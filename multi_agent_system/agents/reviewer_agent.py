@@ -84,10 +84,10 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
      + **PLANNER (GLOBAL)**: Lỗi cấu trúc/kiến trúc đa tệp - thiếu file interface (ví dụ code ghi `implements MovieServiceInterface` nhưng kế hoạch kiến trúc không có file `MovieServiceInterface.java`), sai cấu trúc package/import giữa các module, hoặc lệch chữ ký phương thức giữa hai tầng Service/Repository.
      + **CODER (LOCAL)**: Lỗi cú pháp nội bộ một file, lỗi triển khai thân hàm, sai kiểu dữ liệu, hoặc Coder tự ý khởi tạo interface (`new Repository()`), gọi sai constructor của class nội bộ.
 
-2. **LỖI BIÊN DỊCH TẠI TỆP KIỂM THỬ (TESTHARNESS):**
-   - Chỉ áp dụng khi tệp báo lỗi trong log CHÍNH LÀ `TestHarness.java`, `test_harness.py`, `test_harness.c`.
-   - Nếu Coder đã viết đúng class/hàm theo đề bài nhưng TestHarness gọi sai kiểu dữ liệu, sai tham số, hoặc import sai -> Chọn **TESTER (TESTCASE)**.
-   - Nếu đề bài yêu cầu một hàm/class cụ thể nhưng Coder chưa viết, khiến TestHarness gọi bị lỗi -> Chọn **CODER (LOCAL)**.
+2. LỖI BIÊN DỊCH TẠI TỆP KIỂM THỬ (TESTHARNESS): áp dụng khi tệp báo lỗi trong log CHÍNH LÀ `TestHarness.java`, `test_harness.py`, `test_harness.c`.
+   - ĐỐI CHIẾU SPECIFICATION: 
+     + Nếu tên Class/Method/Interface mà TestHarness đang gọi CÓ XUẤT HIỆN TRONG SPECIFICATION, nhưng CODER không khai báo trong mã nguồn -> Lỗi thuộc về CODER (LOCAL - Thiếu implementation).
+     + Nếu tên Class/Method/Interface hay tham số mà TestHarness gọi KHÔNG NẰM TRONG SPECIFICATION (Tester tự thêm/sửa sai contract) -> Lỗi thuộc về TESTER (TESTCASE).
 
 3. **LỖI RUNTIME / ASSERTION FAILURE (MÃ CHẠY ĐƯỢC NHƯNG TEST THẤT BẠI):**
    - Áp dụng khi mã nguồn và TestHarness đều biên dịch thành công, nhưng khi thực thi bị Exception hoặc Assert fail.

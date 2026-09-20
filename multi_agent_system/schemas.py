@@ -7,7 +7,7 @@ dành cho toàn bộ hệ thống Multi-Agent Code Generation.
 
 from enum import Enum
 from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 # ==============================================================================
 # 1. NGÔN NGỮ LẬP TRÌNH ĐƯỢC HỖ TRỢ
@@ -113,10 +113,13 @@ class ReviewTarget(str, Enum):
     UNKNOWN = "UNKNOWN"   # Không xác định
 
 class ReviewDecision(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     status: str = Field(default="REJECTED", description="'PASSED' hoặc 'REJECTED'")
     target: ReviewTarget = Field(..., description="Agent chịu trách nhiệm: PLANNER, CODER, TESTER")
     error_category: str = Field(default="LOCAL", description="'GLOBAL', 'LOCAL', 'TESTCASE' hoặc 'NONE'")
-    failed_file: Optional[str] = Field(default=None, description="Tên file cụ thể có lỗi (nếu có)")
+    failed_file: Optional[str] = Field(default=None, description="Tên file đơn lẻ có lỗi (giữ lại để tương thích)")
+    failed_files: List[str] = Field(default_factory=list, description="Danh sách các file bị phát hiện lỗi")
     root_cause: str = Field(..., description="Nguyên nhân cốt lõi gây ra lỗi")
     instructions: str = Field(..., description="Chỉ thị sửa đổi cụ thể, chi tiết gửi tới Target Agent")
     audit_table: Optional[Any] = Field(default="", description="Bảng phân tích logic audit (nếu có)")

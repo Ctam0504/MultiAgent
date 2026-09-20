@@ -18,10 +18,10 @@ from typing import List, Dict, Any
 OLLAMA_BASE_URL: str = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 
 # Model gán riêng cho từng Agent (có thể chỉnh độc lập tùy theo dung lượng VRAM/RAM)
-PLANNER_MODEL: str = os.environ.get("PLANNER_MODEL", "gemma3:12b")
-CODER_MODEL: str = os.environ.get("CODER_MODEL", "gemma3:12b")
-TESTER_MODEL: str = os.environ.get("TESTER_MODEL", "gemma3:12b")
-REVIEWER_MODEL: str = os.environ.get("REVIEWER_MODEL", "gemma3:12b")
+PLANNER_MODEL: str = os.environ.get("PLANNER_MODEL", "qwen2.5-coder:7b")
+CODER_MODEL: str = os.environ.get("CODER_MODEL", "qwen2.5-coder:7b")
+TESTER_MODEL: str = os.environ.get("TESTER_MODEL", "qwen2.5-coder:7b")
+REVIEWER_MODEL: str = os.environ.get("REVIEWER_MODEL", "qwen2.5-coder:7b")
 EMBEDDING_MODEL: str = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
 
 # Tham số sinh text của LLM

@@ -9,7 +9,7 @@ Thẩm định nguyên nhân cốt lõi và phân định chính xác:
 """
 
 import json
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from .base_agent import BaseAgent
 from ..schemas import MultiFilePlan, ReviewDecision, ReviewTarget
 from .. import config
@@ -98,13 +98,13 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
 ### ĐỊNH DẠNG TRẢ VỀ:
 Trả về DUY NHẤT một JSON Object hợp lệ:
 {{
-  "status": "REJECTED",
-  "target": "PLANNER" | "CODER" | "TESTER",
-  "error_category": "GLOBAL" | "LOCAL" | "TESTCASE",
-  "failed_file": "tên_file_thực_sự_bị_lỗi_trong_log",
-  "root_cause": "nguyên nhân kỹ thuật cốt lõi kèm vị trí file và dòng bị lỗi",
-  "instructions": "chỉ thị sửa đổi cụ thể cho target agent",
-  "audit_table": "tóm tắt đối chiếu"
+"status": "REJECTED",
+"target": "PLANNER" | "CODER" | "TESTER",
+"error_category": "GLOBAL" | "LOCAL" | "TESTCASE",
+"failed_files": ["danh_sách", "các_file", "thực_sự_bị_lỗi_cần_sửa"],
+"root_cause": "nguyên nhân kỹ thuật cốt lõi kèm vị trí file và dòng bị lỗi",
+"instructions": "chỉ thị sửa đổi cụ thể cho target agent",
+"audit_table": "tóm tắt đối chiếu"
 }}
 """
 
@@ -133,22 +133,56 @@ Trả về DUY NHẤT một JSON Object hợp lệ:
                 else:
                     audit_table_val = str(raw_audit) if raw_audit is not None else ""
 
-                return ReviewDecision(
-                    status=str(json_obj.get("status", "REJECTED")),
-                    target=target_enum,
-                    error_category=str(json_obj.get("error_category", cat)),
-                    failed_file=json_obj.get("failed_file"),
-                    root_cause=str(json_obj.get("root_cause", "Phát hiện lỗi khi thực thi sandbox.")),
-                    instructions=str(json_obj.get("instructions", "Vui lòng kiểm tra và sửa đổi theo log lỗi.")),
-                    audit_table=audit_table_val
-                )
+                # Chuẩn hóa danh sách failed_files từ JSON
+                raw_failed_files = json_obj.get("failed_files")
+                if raw_failed_files is None and json_obj.get("failed_file"):
+                    raw_failed_files = [json_obj.get("failed_file")]
+                    
+                failed_files_list: List[str] = []
+                if isinstance(raw_failed_files, list):
+                    failed_files_list = [str(f).strip().strip("`'\"") for f in raw_failed_files if f]
+                elif isinstance(raw_failed_files, str):
+                    failed_files_list = [f.strip().strip("`'\"") for f in raw_failed_files.split(",") if f.strip()]
+
+                # Lọc danh sách tệp thực tế trong project để chống hallucination
+                valid_failed_files = [f for f in failed_files_list if f in files_dict]
+
+                # Tạo kwargs tương thích dù Schema có failed_files hay failed_file
+                decision_kwargs = {
+                    "status": str(json_obj.get("status", "REJECTED")),
+                    "target": target_enum,
+                    "error_category": str(json_obj.get("error_category", cat)),
+                    "root_cause": str(json_obj.get("root_cause", "Phát hiện lỗi khi thực thi sandbox.")),
+                    "instructions": str(json_obj.get("instructions", "Vui lòng kiểm tra và sửa đổi theo log lỗi.")),
+                    "audit_table": audit_table_val
+                }
+
+                # Kiểm tra thuộc tính schema để tránh ValidationError
+                schema_fields = getattr(ReviewDecision, "__fields__", {}) or getattr(ReviewDecision, "__annotations__", {})
+                if "failed_files" in schema_fields:
+                    decision_kwargs["failed_files"] = valid_failed_files
+                if "failed_file" in schema_fields:
+                    decision_kwargs["failed_file"] = valid_failed_files[0] if valid_failed_files else None
+
+                decision = ReviewDecision(**decision_kwargs)
+                setattr(decision, "failed_files", valid_failed_files)
+                return decision
+
             except Exception as e:
                 print(f"⚠️ [Reviewer] Lỗi cấu trúc JSON sang ReviewDecision: {e}")
 
-        # Fallback regex parsing nếu JSON bị lỗi
-        return self._fallback_parse_decision(raw_resp, error_msg)
+        # Fallback regex parsing nếu JSON bị lỗi hoàn toàn
+        return self._fallback_parse_decision(raw_resp, error_msg, files_dict)
 
-    def _fallback_parse_decision(self, text: str, error_msg: str) -> ReviewDecision:
+    def _fallback_parse_decision(
+        self, 
+        text: str, 
+        error_msg: str, 
+        files_dict: Dict[str, str]
+    ) -> ReviewDecision:
+        """
+        Bảo hiểm bóc tách dữ liệu bằng Regex khi LLM không trả về đúng cú pháp JSON.
+        """
         target_enum = ReviewTarget.CODER
         category = "LOCAL"
 
@@ -163,8 +197,22 @@ Trả về DUY NHẤT một JSON Object hợp lệ:
             target_enum = ReviewTarget.PASSED
             category = "NONE"
 
+        # Trích xuất danh sách failed_files từ text
+        failed_files: List[str] = []
+        ff_json = re.search(r'"failed_files"\s*:\s*\[(.*?)\]', text, re.DOTALL)
+        if ff_json:
+            raw_list = ff_json.group(1)
+            extracted = [re.sub(r'["\s\']', '', f) for f in raw_list.split(",") if f.strip()]
+            failed_files = [f for f in extracted if f in files_dict]
+        else:
+            ff_single = re.search(r'"failed_file"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+            if ff_single:
+                fp = ff_single.group(1).strip()
+                if fp in files_dict:
+                    failed_files = [fp]
+
+        # Trích xuất root_cause
         root_cause = ""
-        # 1. Thử trích xuất từ định dạng JSON nếu có
         rc_json = re.search(r'"root_cause"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
         if rc_json:
             root_cause = rc_json.group(1).encode('utf-8').decode('unicode-escape', errors='ignore').strip()
@@ -175,15 +223,14 @@ Trả về DUY NHẤT một JSON Object hợp lệ:
 
         if not root_cause:
             if error_msg:
-                # Lấy dòng lỗi chính từ error_msg
                 lines = [l.strip() for l in error_msg.splitlines() if l.strip()]
                 root_cause = lines[-1] if lines else "Lỗi thực thi sandbox."
             else:
                 root_cause = "Không thể phân tích chi tiết lỗi."
 
-        # Làm sạch chuỗi root_cause
         root_cause = re.sub(r'^[\s":*]+', '', root_cause).strip()
 
+        # Trích xuất instructions
         instructions = ""
         ins_json = re.search(r'"instructions"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
         if ins_json:
@@ -198,12 +245,21 @@ Trả về DUY NHẤT một JSON Object hợp lệ:
 
         instructions = re.sub(r'^[\s":*]+', '', instructions).strip()
 
-        return ReviewDecision(
-            status="PASSED" if target_enum == ReviewTarget.PASSED else "REJECTED",
-            target=target_enum,
-            error_category=category,
-            failed_file=None,
-            root_cause=root_cause,
-            instructions=instructions,
-            audit_table=""
-        )
+        decision_kwargs = {
+            "status": "PASSED" if target_enum == ReviewTarget.PASSED else "REJECTED",
+            "target": target_enum,
+            "error_category": category,
+            "root_cause": root_cause,
+            "instructions": instructions,
+            "audit_table": ""
+        }
+
+        schema_fields = getattr(ReviewDecision, "__fields__", {}) or getattr(ReviewDecision, "__annotations__", {})
+        if "failed_files" in schema_fields:
+            decision_kwargs["failed_files"] = failed_files
+        if "failed_file" in schema_fields:
+            decision_kwargs["failed_file"] = failed_files[0] if failed_files else None
+
+        decision = ReviewDecision(**decision_kwargs)
+        setattr(decision, "failed_files", failed_files)
+        return decision

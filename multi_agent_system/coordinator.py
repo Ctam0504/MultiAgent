@@ -315,28 +315,33 @@ class MultiAgentCoordinator:
                 self.memory.update_files(self.current_files)
 
             elif decision.target == ReviewTarget.CODER:
-                # Quét chính xác TẤT CẢ các file bị báo lỗi trong stderr/stdout của trình biên dịch
-                detected_failed_files = []
-                for fp in self.current_files.keys():
-                    base_name = os.path.basename(fp)
-                    # Quét cả tên đầy đủ hoặc tên basename trong log lỗi (ví dụ: TicketController.java:17)
-                    if fp in err_details or base_name in err_details:
-                        detected_failed_files.append(fp)
+                target_files_to_fix: List[str] = []
 
-                target_files_to_fix = []
-                if decision.failed_file:
-                    clean_decision_file = os.path.basename(decision.failed_file.strip().strip("`'\""))
+                # (1) ƯU TIÊN 1: Lấy danh sách tệp trực tiếp từ Reviewer gửi sang
+                reviewer_failed_files = getattr(decision, "failed_files", []) or []
+                if not reviewer_failed_files and getattr(decision, "failed_file", None):
+                    reviewer_failed_files = [decision.failed_file]
+
+                for rf in reviewer_failed_files:
+                    clean_rf = os.path.basename(str(rf).strip().strip("`'\""))
                     for fp in self.current_files.keys():
-                        if fp == decision.failed_file or os.path.basename(fp) == clean_decision_file:
+                        if fp == rf or os.path.basename(fp) == clean_rf:
                             if fp not in target_files_to_fix:
                                 target_files_to_fix.append(fp)
 
-                for df in detected_failed_files:
-                    if df not in target_files_to_fix:
-                        target_files_to_fix.append(df)
+                # (2) FALLBACK: Quét compiler log nếu Reviewer không liệt kê cụ thể file nào
+                if not target_files_to_fix:
+                    for fp in self.current_files.keys():
+                        base_name = os.path.basename(fp)
+                        if fp in err_details or base_name in err_details:
+                            if fp not in target_files_to_fix:
+                                target_files_to_fix.append(fp)
 
+                # (3) FALLBACK CUỐI CÙNG: Nếu không tìm thấy file nào, chọn file cuối cùng trong execution order
                 if not target_files_to_fix:
                     target_files_to_fix = [self.current_plan.execution_order[-1]]
+
+                print(f"   📋 [Coordinator] Reviewer chỉ định danh sách {len(target_files_to_fix)} tệp cần Coder sửa: {target_files_to_fix}")
 
                 for target_file in target_files_to_fix:
                     print(f"   🛠️ [Điều chỉnh] Coder Agent đang sửa lỗi trong file: `{target_file}`...")

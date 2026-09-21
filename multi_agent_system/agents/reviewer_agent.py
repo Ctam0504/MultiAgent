@@ -93,7 +93,7 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
    - Áp dụng khi mã nguồn và TestHarness đều biên dịch thành công, nhưng khi thực thi bị Exception hoặc Assert fail.
    - Đối chiếu với [1. YÊU CẦU BÀI TOÁN GỐC]:
      + Nếu Coder tính toán sai thuật toán hoặc không đáp ứng đúng yêu cầu đề bài -> Chọn **CODER (LOCAL)**.
-     + Nếu Coder đã làm đúng yêu cầu đề bài nhưng Testcase kiểm tra điều kiện vô lý hoặc sai giá trị kỳ vọng -> Chọn **TESTER (TESTCASE)**.
+     + Nếu Coder đã làm đúng yêu cầu đề bài nhưng Testcase, assertion của file test kiểm tra điều kiện vô lý hoặc sai giá trị kỳ vọng -> Chọn **TESTER (TESTCASE)**.
 
 ### ĐỊNH DẠNG TRẢ VỀ:
 Trả về DUY NHẤT một JSON Object hợp lệ:

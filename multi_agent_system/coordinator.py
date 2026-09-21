@@ -243,9 +243,9 @@ class MultiAgentCoordinator:
 
             print(f"   -> Trạng thái: {exec_res.status.value} (Mã thoát: {exec_res.exit_code}, Thời gian: {exec_res.execution_time_ms} ms)")
             if exec_res.stdout:
-                print(f"   -> STDOUT: {exec_res.stdout.strip()[:200]}...")
+                print(f"   -> STDOUT: {exec_res.stdout.strip()}...")
             if exec_res.stderr:
-                print(f"   -> STDERR: {exec_res.stderr.strip()[:200]}...")
+                print(f"   -> STDERR: {exec_res.stderr.strip()}...")
 
             # 4.2 Kiểm tra nếu thành công
             if exec_res.status == ExecutionStatus.SUCCESS:

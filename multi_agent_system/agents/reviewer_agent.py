@@ -69,11 +69,20 @@ Các tệp: {[f.filepath for f in plan.files]}
 
 ### QUY TRÌNH THẨM ĐỊNH VÀ NGUYÊN TẮC PHÂN ĐỊNH TRÁCH NHIỆM:
 
-BƯỚC 1: XÁC ĐỊNH NGUỒN GỐC TỆP BỊ LỖI (FILE TRACING ANALYSIS):
-- Đọc kỹ thông báo lỗi trong [5. NHẬT KÝ LỖI SANDBOX THỰC TẾ] để tìm chính xác TÊN TỆP và SỐ DÒNG báo lỗi.
-- LƯU Ý PHÂN BIỆT QUAN TRỌNG:
-  + Tệp kiểm thử (TESTER): Chỉ bao gồm tệp `TestHarness.java`, `test_harness.py`, `test_harness.c`.
-  + Tệp mã nguồn dự án (CODER/PLANNER): Tất cả các tệp trong [3. TOÀN BỘ MÃ NGUỒN CÁC TỆP] (bao gồm `Main.java`, `main.c`, `app.py`, `services/*`, `models/*`, `data/*`, v.v.). Các tệp này là mã nguồn dự án, TUYỆT ĐỐI KHÔNG PHẢI là TestHarness của Tester!
+BƯỚC 1: QUY TRÌNH XÁC ĐỊNH NGUYÊN NHÂN CỐT LÕI (ROOT CAUSE ANALYSIS):
+1. TRUY VẾT LỖI TỪ STACK TRACE / LOG:
+   - Đọc ngược từ đoạn `Caused by:` hoặc dòng lỗi sâu nhất trong [5. NHẬT KÝ LỖI SANDBOX THỰC TẾ].
+   - Trích xuất chính xác: Tên file (`filepath`), số dòng (`line_number`), tên class/method, và loại Exception / Syntax error.
+2. PHÂN TÍCH LUỒNG TRUY CẬP LỖI (DATAFLOW & CALL CHAIN):
+   - Nếu lỗi xảy ra tại File A (ví dụ: `NullPointerException` hoặc `cannot find symbol`):
+     + Kiểm tra xem dữ liệu/interface/class được truyền vào File A đến từ file nào (File B, File C).
+     + Nếu File A bị hỏng do nhận sai Contract / null từ File B: Root Cause nằm ở **File B**, không phải File A.
+     + Nếu File A tự tính toán sai logic nội bộ hoặc sai syntax: Root Cause nằm ở **File A**.
+3. XÁC ĐỊNH DANH SÁCH FILE LỖI (`failed_files`):
+   - Liệt kê đầy đủ tất cả các tệp thực sự chứa nguồn gốc gây lỗi vào danh sách `failed_files` (chỉ điền tên tệp có trong dự án, không chèn ký tự thừa).
+
+BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (TARGET SELECTION):
+... (giữ nguyên quy tắc phân định PLANNER / CODER / TESTER của bạn) ...
 
 BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 1 TARGET):
 

@@ -13,6 +13,7 @@ from typing import Dict, Optional, Any, List
 
 from multi_agent_system.schemas import (
     MultiFilePlan,
+    FileSpec,
     ExecutionRequest,
     ExecutionResult,
     ExecutionStatus,
@@ -36,7 +37,8 @@ class MultiAgentCoordinator:
         output_dir: Optional[str] = None,
         max_cycles: Optional[int] = None,
         use_docker: Optional[bool] = None,
-        enable_shared_memory: Optional[bool] = None
+        enable_shared_memory: Optional[bool] = None,
+        enabled_agents: Optional[List[str]] = None
     ):
         self.output_dir = os.path.abspath(output_dir or config.DEFAULT_OUTPUT_DIR)
         self.max_cycles = max_cycles if max_cycles is not None else config.MAX_SELF_CORRECTION_CYCLES
@@ -44,6 +46,9 @@ class MultiAgentCoordinator:
         self.enable_shared_memory = (
             enable_shared_memory if enable_shared_memory is not None else getattr(config, "ENABLE_SHARED_MEMORY", True)
         )
+        configured_agents = enabled_agents if enabled_agents is not None else config.ENABLED_AGENTS
+        self.enabled_agents = {agent.lower().strip() for agent in configured_agents}
+        self.enabled_agents.add("coder")
 
         # Khởi tạo các Agent và Sandbox Engine
         self.planner = PlannerAgent()
@@ -62,6 +67,39 @@ class MultiAgentCoordinator:
         self.current_tests: str = ""
         self.history_feedback: str = ""
         self.cycle_logs: List[CycleLog] = []
+
+    def _build_fallback_plan(
+        self,
+        task_prompt: str,
+        target_language: Optional[str],
+    ) -> MultiFilePlan:
+        """Build a minimal plan for variants that intentionally disable Planner."""
+        lang = target_language or config.DEFAULT_TARGET_LANGUAGE
+        files = [
+            FileSpec(
+                filepath=filepath,
+                action="MODIFY",
+                purpose="Benchmark target file supplied as existing context.",
+                interface_summary=f"Preserve the existing file contract and satisfy: {task_prompt}",
+            )
+            for filepath in self.initial_files
+        ]
+        if not files:
+            files = [
+                FileSpec(
+                    filepath=f"main.{ 'py' if lang == 'python' else ('java' if lang == 'java' else 'c')}",
+                    action="CREATE",
+                    purpose="Benchmark target implementation.",
+                    interface_summary=task_prompt,
+                )
+            ]
+        return MultiFilePlan(
+            target_language=lang,
+            architecture_pattern="Benchmark fallback plan (Planner disabled)",
+            execution_order=[file.filepath for file in files],
+            files=files,
+            rationale="Planner disabled by benchmark variant; coordinator supplied the minimal contract.",
+        )
 
     def _load_input_folder(self, input_folder: str) -> Dict[str, str]:
         """
@@ -183,14 +221,18 @@ class MultiAgentCoordinator:
         # ----------------------------------------------------------------------
         # BƯỚC 1: PLANNER LẬP KẾ HOẠCH KIẾN TRÚC BAN ĐẦU
         # ----------------------------------------------------------------------
-        print(f"\n📐 [BƯỚC 1] Khởi chạy Planner Agent (Shared Memory: {'BẬT' if self.enable_shared_memory else 'TẮT'})...")
         self.memory.set_task_goal(task_prompt)
-        self.current_plan = await self.planner.plan_codebase(
-            task_prompt=task_prompt,
-            input_folder=input_folder,
-            target_language=target_language,
-            initial_files=self.initial_files
-        )
+        if "planner" in self.enabled_agents:
+            print(f"\n📐 [BƯỚC 1] Khởi chạy Planner Agent (Shared Memory: {'BẬT' if self.enable_shared_memory else 'TẮT'})...")
+            self.current_plan = await self.planner.plan_codebase(
+                task_prompt=task_prompt,
+                input_folder=input_folder,
+                target_language=target_language,
+                initial_files=self.initial_files
+            )
+        else:
+            print("\n📐 [BƯỚC 1] Planner Agent bị tắt theo Variant; dùng fallback plan...")
+            self.current_plan = self._build_fallback_plan(task_prompt, target_language)
         self.memory.update_plan(self.current_plan)
         lang = self.current_plan.target_language
         print(f"   -> Ngôn ngữ đích xác định: {lang.upper()}")
@@ -213,13 +255,17 @@ class MultiAgentCoordinator:
         # ----------------------------------------------------------------------
         # BƯỚC 3: TESTER SINH KỊCH BẢN KIỂM THỬ BAN ĐẦU
         # ----------------------------------------------------------------------
-        print("\n🧪 [BƯỚC 3] Khởi chạy Tester Agent sinh Test Harness...")
-        tester_input_files = self.memory.get_tester_files(self.current_files)
-        self.current_tests = self.tester.generate_tests(
-            task_goal=task_prompt,
-            files_dict=tester_input_files,
-            target_language=lang
-        )
+        if "tester" in self.enabled_agents:
+            print("\n🧪 [BƯỚC 3] Khởi chạy Tester Agent sinh Test Harness...")
+            tester_input_files = self.memory.get_tester_files(self.current_files)
+            self.current_tests = self.tester.generate_tests(
+                task_goal=task_prompt,
+                files_dict=tester_input_files,
+                target_language=lang
+            )
+        else:
+            print("\n🧪 [BƯỚC 3] Tester Agent bị tắt theo Variant; bỏ qua Test Harness...")
+            self.current_tests = ""
         self.memory.update_tests(self.current_tests)
 
         # ----------------------------------------------------------------------
@@ -263,6 +309,19 @@ class MultiAgentCoordinator:
                 break
 
             # 4.3 Nếu có lỗi: Gửi log lỗi cho Reviewer Agent thẩm định
+            if "reviewer" not in self.enabled_agents:
+                print("\n❌ [KẾT QUẢ] Sandbox thất bại; Reviewer Agent bị tắt nên dừng workflow.")
+                self.cycle_logs.append(CycleLog(
+                    cycle=cycle,
+                    attempt_time=datetime.datetime.now().strftime("%H:%M:%S"),
+                    target_language=lang,
+                    plan_summary=[f.filepath for f in self.current_plan.files],
+                    execution_status=exec_res.status,
+                    review_target=ReviewTarget.UNKNOWN,
+                    note="Sandbox thất bại và Reviewer bị tắt theo Variant."
+                ))
+                break
+
             print(f"\n⚖️ [Reviewer] Thẩm định lỗi và phân định trách nhiệm...")
             err_details = f"Exit Code: {exec_res.exit_code}\nSTDERR:\n{exec_res.stderr}\nSTDOUT:\n{exec_res.stdout}"
             reviewer_history = self.memory.get_history_feedback()
@@ -311,7 +370,7 @@ class MultiAgentCoordinator:
                     print(f"   🔄 [Coordinator Auto-Fix] Phát hiện chỉ thị sửa file nguồn {src_mentioned}. Chuyển quyền sửa cho CODER.")
                     decision.target = ReviewTarget.CODER
 
-            if decision.target == ReviewTarget.PLANNER:
+            if decision.target == ReviewTarget.PLANNER and "planner" in self.enabled_agents:
                 print("   🛠️ [Điều chỉnh] Planner Agent đang tái cấu trúc kế hoạch kiến trúc...")
                 self.current_plan = self.planner.refine_plan(
                     current_plan=self.current_plan,
@@ -405,7 +464,7 @@ class MultiAgentCoordinator:
                         with open(full_p, "w", encoding="utf-8") as f:
                             f.write(fixed_code)
 
-            elif decision.target == ReviewTarget.TESTER:
+            elif decision.target == ReviewTarget.TESTER and "tester" in self.enabled_agents:
                 print("   🛠️ [Điều chỉnh] Tester Agent đang sửa lại kịch bản kiểm thử...")
                 tester_fix_files = self.memory.get_tester_files(self.current_files)
                 self.current_tests = self.tester.fix_tests(

@@ -68,6 +68,9 @@ Các tệp: {[f.filepath for f in plan.files]}
 {history_section}
 
 ### QUY TRÌNH THẨM ĐỊNH VÀ NGUYÊN TẮC PHÂN ĐỊNH TRÁCH NHIỆM:
+Danh sách file trách nhiệm:
+ + Tester: file test_harness.py, test_harness.java, test_harness.c
+ + Coder và Planner: tất cả các file còn lại trong project.
 
 BƯỚC 1: QUY TRÌNH XÁC ĐỊNH NGUYÊN NHÂN CỐT LÕI (ROOT CAUSE ANALYSIS):
 1. TRUY VẾT LỖI TỪ STACK TRACE / LOG:
@@ -94,6 +97,7 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
      + **CODER (LOCAL)**: Lỗi cú pháp nội bộ một file, lỗi triển khai thân hàm, sai kiểu dữ liệu, hoặc Coder tự ý khởi tạo interface (`new Repository()`), gọi sai constructor của class nội bộ.
 
 2. LỖI BIÊN DỊCH TẠI TỆP KIỂM THỬ (TESTHARNESS): áp dụng khi tệp báo lỗi trong log CHÍNH LÀ `TestHarness.java`, `test_harness.py`, `test_harness.c`.
+   - Lỗi compile chỉ xuất hiện trong file TestHarness: -> Lỗi thuộc về TESTER (TESTCASE).
    - ĐỐI CHIẾU SPECIFICATION: 
      + Nếu tên Class/Method/Interface mà TestHarness đang gọi CÓ XUẤT HIỆN TRONG SPECIFICATION, nhưng CODER không khai báo trong mã nguồn -> Lỗi thuộc về CODER (LOCAL - Thiếu implementation).
      + Nếu tên Class/Method/Interface hay tham số mà TestHarness gọi KHÔNG NẰM TRONG SPECIFICATION (Tester tự thêm/sửa sai contract) -> Lỗi thuộc về TESTER (TESTCASE).

@@ -93,11 +93,21 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
      + **PLANNER (GLOBAL)**: Lỗi cấu trúc/kiến trúc đa tệp - thiếu file interface (ví dụ code ghi `implements MovieServiceInterface` nhưng kế hoạch kiến trúc không có file `MovieServiceInterface.java`), sai cấu trúc package/import giữa các module, hoặc lệch chữ ký phương thức giữa hai tầng Service/Repository.
      + **CODER (LOCAL)**: Lỗi cú pháp nội bộ một file, lỗi triển khai thân hàm, sai kiểu dữ liệu, hoặc Coder tự ý khởi tạo interface (`new Repository()`), gọi sai constructor của class nội bộ.
 
-2. LỖI BIÊN DỊCH TẠI TỆP KIỂM THỬ (TESTHARNESS): áp dụng khi tệp báo lỗi trong log CHÍNH LÀ `TestHarness.java`, `test_harness.py`, `test_harness.c`.
-   - Lỗi compile chỉ xuất hiện trong file TestHarness: -> Lỗi thuộc về TESTER (TESTCASE).
-   - ĐỐI CHIẾU SPECIFICATION: 
-     + Nếu tên Class/Method/Interface mà TestHarness đang gọi CÓ XUẤT HIỆN TRONG SPECIFICATION, nhưng CODER không khai báo trong mã nguồn -> Lỗi thuộc về CODER (LOCAL - Thiếu implementation).
-     + Nếu tên Class/Method/Interface hay tham số mà TestHarness gọi KHÔNG NẰM TRONG SPECIFICATION (Tester tự thêm/sửa sai contract) -> Lỗi thuộc về TESTER (TESTCASE).
+2. LỖI BIÊN DỊCH / KHÔNG TÌM THẤY KÝ HIỆU TẠI TỆP KIỂM THỬ (TEST HARNESS):
+   (Áp dụng khi log lỗi biên dịch/import chỉ ra vị trí đứt gãy nằm trong file TestHarness)
+
+   👉 BẮT BUỘC LẤY SPECIFICATION LÀM CHÂN LÝ ĐỂ ĐỐI CHIẾU:
+   Trích xuất đúng Class / Method / Field / Signature đang bị báo lỗi trong TestHarness và so sánh với [1. YÊU CẦU BÀI TOÁN GỐC (SPECIFICATION)]:
+
+   + TRƯỜNG HỢP 2.1 - CODER SAI (CODER / LOCAL):
+     Nếu Class / Method / Signature mà TestHarness gọi CÓ ĐƯỢC YÊU CẦU TRONG SPECIFICATION, nhưng Coder không khai báo, đặt sai tên, truyền sai tham số, hoặc chưa triển khai.
+     -> PHÁN QUYẾT: CODER (LOCAL).
+     -> Root cause: Coder vi phạm hợp đồng (Contract) đã được quy định trong Specification.
+
+   + TRƯỜNG HỢP 2.2 - TESTER SAI (TESTER / TESTCASE):
+     Nếu Class / Method / Signature mà TestHarness gọi KHÔNG XUẤT HIỆN TRONG SPECIFICATION (Tester tự bịa ra tên hàm/Class mới, truyền thêm tham số không có trong đề bài, hoặc import sai package).
+     -> PHÁN QUYẾT: TESTER (TESTCASE).
+     -> Root cause: Tester tự ý thay đổi Hợp đồng API (Contract) khác với yêu cầu bài toán gốc.
 
 3. **LỖI RUNTIME / ASSERTION FAILURE (MÃ CHẠY ĐƯỢC NHƯNG TEST THẤT BẠI):**
    - Áp dụng khi mã nguồn và TestHarness đều biên dịch thành công, nhưng khi thực thi bị Exception hoặc Assert fail.

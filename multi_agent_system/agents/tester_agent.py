@@ -98,7 +98,7 @@ Nhiệm vụ: Viết bộ kịch bản kiểm thử (Test Suite) toàn diện ch
 1. Kiểm tra các chức năng chính và các trường hợp biên (edge cases).
 2. Kiểm tra sự phối hợp (integration) giữa các module/tệp tin.
 3. Test case PHẢI khách quan và tuân thủ đúng yêu cầu bài toán. Không tự bịa ra điều kiện vô lý.
-
+4. Khi viết test assertion, luôn in ra giá trị thực tế nếu kiểm tra thất bại (VD: Result, Expected).
 {fmt_instruction}
 
 ### [YÊU CẦU ĐẦU RA]:
@@ -181,7 +181,18 @@ CHỈ TRẢ VỀ MÃ KIỂM THỬ trong khối ```{target_language} ... ```. Kh�
                     rel_path = matched_path.replace(os.path.sep, "/")
                     clean_code = clean_code.replace(f'#include "{inc}"', f'#include "{rel_path}"')
                 # End of include handling
-
+        # Auto-import missing standard libraries for Java test harness
+        if target_language.lower() == "java":
+            java_imports = []
+            if re.search(r"\b(Map|List|Set|HashMap|ArrayList|HashSet)\b", clean_code):
+                if "import java.util" not in clean_code:
+                    java_imports.append("import java.util.*;")
+            if re.search(r"\b(File|BufferedReader|BufferedWriter|FileReader|FileWriter|IOException)\b", clean_code):
+                if "import java.io" not in clean_code:
+                    java_imports.append("import java.io.*;")
+            
+            if java_imports:
+                clean_code = "\n".join(java_imports) + "\n" + clean_code
 
 
         return clean_code if clean_code else raw_resp.strip()

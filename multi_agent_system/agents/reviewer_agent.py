@@ -84,9 +84,6 @@ BƯỚC 1: QUY TRÌNH XÁC ĐỊNH NGUYÊN NHÂN CỐT LÕI (ROOT CAUSE ANALYSIS
 3. XÁC ĐỊNH DANH SÁCH FILE LỖI (`failed_files`):
    - Liệt kê đầy đủ tất cả các tệp thực sự chứa nguồn gốc gây lỗi vào danh sách `failed_files` (chỉ điền tên tệp có trong dự án, không chèn ký tự thừa).
 
-BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (TARGET SELECTION):
-... (giữ nguyên quy tắc phân định PLANNER / CODER / TESTER của bạn) ...
-
 BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 1 TARGET):
 
 1. **LỖI BIÊN DỊCH / CÚ PHÁP TẠI TỆP MÃ NGUỒN DỰ ÁN (TUYỆT ĐỐI KHÔNG CHỌN TESTER):**

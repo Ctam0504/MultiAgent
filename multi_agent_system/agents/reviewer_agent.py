@@ -32,8 +32,7 @@ class ReviewerAgent(BaseAgent):
         plan: MultiFilePlan,
         files_dict: Dict[str, str],
         test_cases: str,
-        error_msg: str,
-        history_feedback: str = ""
+        error_msg: str
     ) -> ReviewDecision:
         """
         Thẩm định log lỗi và phân định trách nhiệm.
@@ -41,8 +40,6 @@ class ReviewerAgent(BaseAgent):
         code_overview = ""
         for filepath, content in files_dict.items():
             code_overview += f"\n--- FILE: `{filepath}` ---\n```{plan.target_language}\n{content}\n```\n"
-
-        history_section = f"\n### [LỊCH SỬ THẨM ĐỊNH TRƯỚC ĐÓ]:\n{history_feedback}\n" if history_feedback else ""
 
         prompt = f"""BẠN LÀ META-LOGIC AUDITOR & ROOT-CAUSE SYSTEM ANALYZER.
 Nhiệm vụ: Phân tích sự cố thực thi Sandbox, đối chiếu toàn bộ mã nguồn đa tệp và yêu cầu bài toán,
@@ -65,7 +62,6 @@ Các tệp: {[f.filepath for f in plan.files]}
 
 ### [5. NHẬT KÝ LỖI SANDBOX THỰC TẾ]:
 {error_msg if error_msg else "Mã nguồn thực thi thành công, không có lỗi runtime."}
-{history_section}
 
 ### QUY TRÌNH THẨM ĐỊNH VÀ NGUYÊN TẮC PHÂN ĐỊNH TRÁCH NHIỆM:
 Danh sách file trách nhiệm:
@@ -123,7 +119,7 @@ Trả về DUY NHẤT một JSON Object hợp lệ:
 "error_category": "GLOBAL" | "LOCAL" | "TESTCASE",
 "failed_files": ["danh_sách", "các_file", "thực_sự_bị_lỗi_cần_sửa"],
 "root_cause": "nguyên nhân kỹ thuật cốt lõi kèm vị trí file và dòng bị lỗi",
-"instructions": "chỉ thị sửa đổi cụ thể cho target agent",
+"instructions": "chỉ thị sửa đổi cho các file cụ thể cho target agent",
 "audit_table": "tóm tắt đối chiếu"
 }}
 """

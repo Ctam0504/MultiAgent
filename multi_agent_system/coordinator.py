@@ -65,7 +65,6 @@ class MultiAgentCoordinator:
         self.initial_files: Dict[str, str] = {}
         self.current_files: Dict[str, str] = {}
         self.current_tests: str = ""
-        self.history_feedback: str = ""
         self.cycle_logs: List[CycleLog] = []
 
     def _build_fallback_plan(
@@ -324,14 +323,12 @@ class MultiAgentCoordinator:
 
             print(f"\n⚖️ [Reviewer] Thẩm định lỗi và phân định trách nhiệm...")
             err_details = f"Exit Code: {exec_res.exit_code}\nSTDERR:\n{exec_res.stderr}\nSTDOUT:\n{exec_res.stdout}"
-            reviewer_history = self.memory.get_history_feedback()
             decision = self.reviewer.review(
                 task_goal=task_prompt,
                 plan=self.current_plan,
                 files_dict=self.current_files,
                 test_cases=self.current_tests,
-                error_msg=err_details,
-                history_feedback=reviewer_history
+                error_msg=err_details
             )
 
             print(f"   -> Đối tượng sai: {decision.target.value} (Phân loại: {decision.error_category})")
@@ -349,8 +346,6 @@ class MultiAgentCoordinator:
             ))
 
             feedback_entry = f"\n[VÒNG {cycle} - LỖI {decision.target.value}]: {decision.instructions}\n"
-            self.history_feedback += feedback_entry
-            self.memory.add_feedback(feedback_entry)
 
         # 4.4 Thực hiện sửa đổi dựa theo phán quyết của Reviewer
             

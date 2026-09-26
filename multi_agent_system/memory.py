@@ -9,7 +9,6 @@ class SharedMemory:
         self.current_plan: Optional[MultiFilePlan] = None
         self.files: Dict[str, str] = {}
         self.test_cases: str = ""
-        self.history_feedback: str = ""
         self.agent_logs: List[Dict[str, Any]] = []
 
     def set_task_goal(self, task_goal: str):
@@ -31,10 +30,6 @@ class SharedMemory:
         if self.enabled:
             self.test_cases = test_cases
 
-    def add_feedback(self, feedback: str):
-        if self.enabled:
-            self.history_feedback += feedback
-
     def get_coder_context(self, file_spec: FileSpec, all_files: Dict[str, str]) -> Dict[str, str]:
         if not self.enabled:
             isolated_context = {}
@@ -48,15 +43,10 @@ class SharedMemory:
             return {fp: f'// File: {fp} (Hidden in isolated mode)' for fp in all_files.keys()}
         return dict(all_files)
 
-    def get_history_feedback(self) -> str:
-        if not self.enabled:
-            return ""
-        return self.history_feedback
 
     def clear(self):
         self.task_goal = ""
         self.current_plan = None
         self.files.clear()
         self.test_cases = ""
-        self.history_feedback = ""
         self.agent_logs.clear()

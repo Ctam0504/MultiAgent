@@ -54,6 +54,23 @@ QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
 3. Đảm bảo cấu trúc module rõ ràng, phân chia tầng hợp lý.
 """
 
+    async def _retrieve_graphrag_context(self, folder: Optional[str], query: str) -> str:
+        if not folder or not os.path.exists(folder):
+            return ""
+
+        try:
+            graph, chunks = parse_codebase_to_graph_and_chunks(folder)
+            if graph.number_of_nodes() == 0:
+                return ""
+
+            store = GraphKnowledgeStore()
+            await store.build_from_chunks(graph, chunks)
+            retriever = GraphRAGRetriever(store)
+            return await retriever.retrieve_context(query, top_k=config.GRAPHRAG_TOP_K)
+        except Exception as e:
+            print(f"⚠️ [Planner] Bỏ qua trích xuất GraphRAG do lỗi: {e}")
+            return ""
+
     async def plan_codebase(
         self, 
         task_prompt: str, 
@@ -86,17 +103,7 @@ QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
             resolved_lang = getattr(config, "DEFAULT_TARGET_LANGUAGE", "java")
 
         # 2. Phân tích ngữ cảnh Codebase hiện hữu bằng GraphRAG nếu có
-        graphrag_context = ""
-        if input_folder and os.path.exists(input_folder):
-            try:
-                graph, chunks = parse_codebase_to_graph_and_chunks(input_folder)
-                if graph.number_of_nodes() > 0:
-                    store = GraphKnowledgeStore()
-                    await store.build_from_chunks(graph, chunks)
-                    retriever = GraphRAGRetriever(store)
-                    graphrag_context = await retriever.retrieve_context(task_prompt, top_k=config.GRAPHRAG_TOP_K)
-            except Exception as e:
-                print(f"⚠️ [Planner] Bỏ qua trích xuất GraphRAG do lỗi: {e}")
+        graphrag_context = await self._retrieve_graphrag_context(input_folder, task_prompt)
 
         rag_section = f"\n### [NGỮ CẢNH CODEBASE TỪ ĐỒ THỊ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
 
@@ -183,16 +190,27 @@ Chỉ trả về JSON object thuần túy, không chèn lời mở đầu hay k�
 
         return MultiFilePlan.model_validate(json_obj)
 
-    def refine_plan(
+    async def refine_plan(
         self,
         current_plan: MultiFilePlan,
         reviewer_instructions: str,
         current_files: Dict[str, str],
-        error_log: str
+        error_log: str,
+        current_folder: Optional[str] = None
     ) -> MultiFilePlan:
         """
         Cập nhật lại kế hoạch và cây thư mục khi Reviewer xác định lỗi Global.
         """
+        rag_query = "\n".join(
+            part for part in (reviewer_instructions, error_log) if part.strip()
+        )
+        graphrag_context = await self._retrieve_graphrag_context(current_folder, rag_query)
+        rag_section = (
+            f"\n### [NGỮ CẢNH CODEBASE HIỆN TẠI TỪ ĐỒ THỊ GRAPHRAG]:\n"
+            f"{graphrag_context}\n"
+            if graphrag_context
+            else ""
+        )
         guidelines = self._get_language_guidelines(current_plan.target_language)
         files_overview = "\n".join([f"- {f.filepath}: {f.purpose}" for f in current_plan.files])
 
@@ -210,6 +228,7 @@ Danh sách file:
 ### [CHỈ THỊ SỬA ĐỔI TỪ REVIEWER]:
 {reviewer_instructions}
 
+{rag_section}
 {guidelines}
 
 ### [NHIỆM VỤ]:

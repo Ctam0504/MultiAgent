@@ -367,11 +367,12 @@ class MultiAgentCoordinator:
 
             if decision.target == ReviewTarget.PLANNER and "planner" in self.enabled_agents:
                 print("   🛠️ [Điều chỉnh] Planner Agent đang tái cấu trúc kế hoạch kiến trúc...")
-                self.current_plan = self.planner.refine_plan(
+                self.current_plan = await self.planner.refine_plan(
                     current_plan=self.current_plan,
                     reviewer_instructions=decision.instructions,
                     current_files=self.current_files,
-                    error_log=err_details
+                    error_log=err_details,
+                    current_folder=self.output_dir
                 )
                 self.memory.update_plan(self.current_plan)
                 print("   🛠️ [Điều chỉnh] Coder Agent đồng bộ lại các file mã nguồn...")

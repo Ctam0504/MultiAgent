@@ -81,14 +81,14 @@ class GraphKnowledgeStore:
 
         embeddings = await self.get_embeddings(contents)
         try:
-            self.collection.add(
+            self.collection.upsert(
                 documents=contents,
                 embeddings=embeddings,
                 metadatas=metadatas,
                 ids=ids
             )
         except Exception as e:
-            print(f"⚠️ [GraphKnowledgeStore] Lỗi add vectors vào ChromaDB: {e}")
+            print(f"⚠️ [GraphKnowledgeStore] Lỗi upsert vectors vào ChromaDB: {e}")
 
     def load_existing_graph(self) -> nx.DiGraph:
         if os.path.exists(self.graph_file) and os.path.getsize(self.graph_file) > 0:

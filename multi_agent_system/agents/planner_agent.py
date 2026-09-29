@@ -139,7 +139,7 @@ Trả về DUY NHẤT một JSON Object hợp lệ theo cấu trúc sau:
     {
       "filepath": "đường dẫn tương đối của file kèm đuôi",
       "action": "CREATE hoặc MODIFY hoặc KEEP",
-      "dependencies": ["các_file_mà_file_này_phụ_thuộc"],
+      "dependencies": ["các_file_mà_file_này_phụ_thuộc, các thư viện mà file sử dụng"],
       "purpose": "mục đích và trách nhiệm của tệp",
       "interface_summary": "chi tiết các Class, Function signatures, Structs hoặc Headers"
     }
@@ -192,35 +192,37 @@ Chỉ trả về JSON object thuần túy, không chèn lời mở đầu hay k�
 
     async def refine_plan(
         self,
+        task_prompt: str,
         current_plan: MultiFilePlan,
         reviewer_instructions: str,
-        current_files: Dict[str, str],
+        current_files: Dict[str, str], # <--- Nhận vào dictionary {filepath: code_content}
         error_log: str,
         current_folder: Optional[str] = None
     ) -> MultiFilePlan:
         """
         Cập nhật lại kế hoạch và cây thư mục khi Reviewer xác định lỗi Global.
         """
-        rag_query = "\n".join(
-            part for part in (reviewer_instructions, error_log) if part.strip()
-        )
+        rag_query = f"{reviewer_instructions}\n{error_log}".strip()
         graphrag_context = await self._retrieve_graphrag_context(current_folder, rag_query)
-        rag_section = (
-            f"\n### [NGỮ CẢNH CODEBASE HIỆN TẠI TỪ ĐỒ THỊ GRAPHRAG]:\n"
-            f"{graphrag_context}\n"
-            if graphrag_context
-            else ""
-        )
+        rag_section = f"\n### [NGỮ CẢNH CODEBASE HIỆN TẠI TỪ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
         guidelines = self._get_language_guidelines(current_plan.target_language)
-        files_overview = "\n".join([f"- {f.filepath}: {f.purpose}" for f in current_plan.files])
+
+        # --------------------------------------------------------------------------
+        # BƯỚC SỬA: Biến đổi `current_files` thành chuỗi tóm tắt mã nguồn thực tế
+        # --------------------------------------------------------------------------
+        code_snapshots = []
+        for filepath, code in current_files.items():
+            # Cắt bớt nếu file quá dài để tiết kiệm Token, chỉ lấy phần interface/signatures chính
+            snippet = code[:800] + "\n... [phần còn lại bị cắt bớt]" if len(code) > 800 else code
+            code_snapshots.append(f"--- TỆP `{filepath}` ---\n{snippet}\n")
+        
+        current_code_section = "\n".join(code_snapshots) if code_snapshots else "Không có mã nguồn thực tế."
 
         prompt = f"""BẠN LÀ SYSTEM ARCHITECT AGENT.
-Kế hoạch đa tệp hiện tại của bạn đã gặp **LỖI TOÀN CỤC (GLOBAL ARCHITECTURE ERROR)**: Mâu thuẫn interface, sai import, hoặc lệch tên hàm giữa các file.
-
-### [KẾ HOẠCH HIỆN TẠI]:
-Kiến trúc: {current_plan.architecture_pattern}
-Danh sách file:
-{files_overview}
+Kế hoạch đa tệp hiện tại của bạn đã gặp **LỖI TOÀN CỤC (GLOBAL ARCHITECTURE ERROR)**.
+Yêu cầu bài toán: {task_prompt}
+### [MÃ NGUỒN HIỆN TẠI CỦA CÁC FILE ĐANG BỊ LỖI]:
+{current_code_section}
 
 ### [NHẬT KÝ LỖI SANDBOX]:
 {error_log}
@@ -232,24 +234,37 @@ Danh sách file:
 {guidelines}
 
 ### [NHIỆM VỤ]:
-Hãy điều chỉnh lại kiến trúc, chuẩn hóa lại tên hàm, interface signatures, hoặc thêm/bớt file nếu cần để loại bỏ triệt để mâu thuẫn giữa các file.
-
-Trả về DUY NHẤT một JSON Object hợp lệ của `MultiFilePlan` như sau:
+Hãy kế thừa, tái sử dụng các tệp, class, struct, hàm và package sẵn có trong thư mục này, chuẩn hóa lại tên class/hàm/interface signatures giữa các file, hoặc bổ sung/loại bỏ file cần thiết.
+### Quy tắc sửa lỗi:
+- Tuân thủ yêu cầu bài toán, chỉ sửa đổi những file cần thiết, giữ nguyên các file đã đúng.
+- Nếu cần tạo file mới, hãy thêm vào danh sách `files` với `action: "CREATE"`.
+- Nếu file hiện tại cần sửa đổi, hãy đặt `action: "MODIFY"` và cập nhật `interface_summary` tương ứng.
+- Nếu file hiện tại không cần sửa đổi, hãy giữ nguyên `action: "KEEP"` và không thay đổi nội dung.
+Trả về DUY NHẤT một JSON Object hợp lệ của `MultiFilePlan`:
 {{
   "target_language": "{current_plan.target_language}",
   "architecture_pattern": "{current_plan.architecture_pattern}",
-  "execution_order": ["file1", "file2", ...],
-  "files": [ ... ],
-  "rationale": "Lý do điều chỉnh kiến trúc"
+  "execution_order": ["file1", "file2"],
+  "files": [
+    {{
+      "filepath": "đường dẫn file",
+      "action": "CREATE hoặc MODIFY hoặc KEEP",
+      "dependencies": ["file_phụ_thuộc"],
+      "purpose": "mục đích",
+      "interface_summary": "chi tiết interface/class/method đã sửa"
+    }}
+  ],
+  "rationale": "Lý do điều chỉnh"
 }}
 """
 
         response_text = self.call_llm(prompt, format_json=True)
         json_obj = self.extract_json_object(response_text)
+        
         if json_obj and "files" in json_obj:
             try:
                 return MultiFilePlan.model_validate(json_obj)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"⚠️ [Planner] Lỗi validate JSON khi refine_plan: {e}")
 
         return current_plan

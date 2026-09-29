@@ -86,7 +86,7 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
    - Nếu tệp bị lỗi trong log là tệp mã nguồn của Coder/Planner (ví dụ: `services/MovieService.java:8: error: cannot find symbol`, `data/MovieRepository.java`, `Main.java`):
      -> NGUYÊN TẮC CỐT LÕI: Khi mã nguồn dự án không biên dịch được, TestHarness CHƯA TỪNG ĐƯỢC CHẠY. Do đó lỗi 100% thuộc về CODER hoặc PLANNER, NGHIÊM CẤM ĐỔ LỖI CHO TESTER!
    - Phân định giữa PLANNER và CODER:
-     + **PLANNER (GLOBAL)**: Lỗi cấu trúc/kiến trúc đa tệp - thiếu file interface (ví dụ code ghi `implements MovieServiceInterface` nhưng kế hoạch kiến trúc không có file `MovieServiceInterface.java`), sai cấu trúc package/import giữa các module, hoặc lệch chữ ký phương thức giữa hai tầng Service/Repository.
+     + **PLANNER (GLOBAL)**: Lỗi cấu trúc/kiến trúc đa tệp - thiếu file interface (ví dụ code ghi `implements MovieServiceInterface` nhưng kế hoạch kiến trúc không có file `MovieServiceInterface.java`), sai cấu trúc package/import giữa các thư viện/module, hoặc lệch chữ ký phương thức giữa hai tầng Service/Repository.
      + **CODER (LOCAL)**: Lỗi cú pháp nội bộ một file, lỗi triển khai thân hàm, sai kiểu dữ liệu, hoặc Coder tự ý khởi tạo interface (`new Repository()`), gọi sai constructor của class nội bộ.
 
 2. LỖI BIÊN DỊCH / KHÔNG TÌM THẤY KÝ HIỆU TẠI TỆP KIỂM THỬ (TEST HARNESS):

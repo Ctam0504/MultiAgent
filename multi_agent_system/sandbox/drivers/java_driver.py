@@ -103,7 +103,7 @@ public class TestHarness {{
                     "java -cp /workspace TestHarness'"
                 )
             # Local execution (Windows / Linux)
-            return "javac -d . @project_sources.txt && javac -cp . TestHarness.java && java -cp . TestHarness"
+            return "javac -encoding UTF-8 -d . @project_sources.txt && javac -encoding UTF-8 -cp . TestHarness.java && java -Dfile.encoding=UTF-8 -cp . TestHarness"
         else:
             if use_docker:
                 return "sh -c 'javac -d /workspace /workspace/TestHarness.java && java -cp /workspace TestHarness'"

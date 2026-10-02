@@ -226,8 +226,7 @@ class MultiAgentCoordinator:
             self.current_plan = await self.planner.plan_codebase(
                 task_prompt=task_prompt,
                 input_folder=input_folder,
-                target_language=target_language,
-                initial_files=self.initial_files
+                target_language=target_language
             )
         else:
             print("\n📐 [BƯỚC 1] Planner Agent bị tắt theo Variant; dùng fallback plan...")
@@ -371,7 +370,6 @@ class MultiAgentCoordinator:
                     task_prompt=task_prompt,
                     current_plan=self.current_plan,
                     reviewer_instructions=decision.instructions,
-                    current_files=self.current_files,
                     error_log=err_details,
                     current_folder=self.output_dir
                 )

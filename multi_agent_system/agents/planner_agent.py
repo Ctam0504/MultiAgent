@@ -7,12 +7,11 @@ khi nhận phản hồi lỗi Global từ Reviewer.
 """
 
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from .base_agent import BaseAgent
 from ..schemas import MultiFilePlan, FileSpec, LanguageType
 from ..tools.language_detector import detect_language_from_folder
 from ..rag.ast_extractor import parse_codebase_to_graph_and_chunks
-from ..rag.graph_store import GraphKnowledgeStore
 from ..rag.rag_pipeline import GraphRAGRetriever
 from .. import config
 
@@ -54,19 +53,21 @@ QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
 3. Đảm bảo cấu trúc module rõ ràng, phân chia tầng hợp lý.
 """
 
-    async def _retrieve_graphrag_context(self, folder: Optional[str], query: str) -> str:
+    async def _retrieve_graphrag_context(self, folder: Optional[str]) -> str:
         if not folder or not os.path.exists(folder):
             return ""
 
         try:
-            graph, chunks = parse_codebase_to_graph_and_chunks(folder)
+            graph, _ = parse_codebase_to_graph_and_chunks(folder)
             if graph.number_of_nodes() == 0:
                 return ""
 
-            store = GraphKnowledgeStore()
-            await store.build_from_chunks(graph, chunks)
-            retriever = GraphRAGRetriever(store)
-            return await retriever.retrieve_context(query, top_k=config.GRAPHRAG_TOP_K)
+            context = GraphRAGRetriever.get_codebase_manifest(graph)
+            print(
+                "\n📚 [Planner: GraphRAG] Toàn bộ manifest từ graph:\n"
+                f"{context or '[Không có context được truy xuất.]'}\n"
+            )
+            return context
         except Exception as e:
             print(f"⚠️ [Planner] Bỏ qua trích xuất GraphRAG do lỗi: {e}")
             return ""
@@ -75,11 +76,10 @@ QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
         self, 
         task_prompt: str, 
         input_folder: Optional[str] = None, 
-        target_language: Optional[str] = None,
-        initial_files: Optional[Dict[str, str]] = None
+        target_language: Optional[str] = None
     ) -> MultiFilePlan:
         """
-        Khởi tạo kế hoạch đa tệp dựa trên yêu cầu bài toán và thư mục tiền sắp xếp.
+        Khởi tạo kế hoạch đa tệp dựa trên yêu cầu và ngữ cảnh GraphRAG.
         """
         # 1. Xác định ngôn ngữ lập trình
         resolved_lang: Optional[str] = target_language
@@ -103,31 +103,11 @@ QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
             resolved_lang = getattr(config, "DEFAULT_TARGET_LANGUAGE", "java")
 
         # 2. Phân tích ngữ cảnh Codebase hiện hữu bằng GraphRAG nếu có
-        graphrag_context = await self._retrieve_graphrag_context(input_folder, task_prompt)
+        graphrag_context = await self._retrieve_graphrag_context(input_folder)
 
-        rag_section = f"\n### [NGỮ CẢNH CODEBASE TỪ ĐỒ THỊ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
+        rag_section = f"\n### [NGỮ CẢNH CODEBASE ĐÃ CÓ TỪ ĐỒ THỊ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
 
-        # 3. Tổng hợp danh sách tệp tiền sắp xếp của người dùng nếu có
-        existing_files_section = ""
-        if initial_files:
-            file_summaries = []
-            for fp, content in initial_files.items():
-                first_lines = "\n".join([line for line in content.splitlines()[:20] if line.strip()])
-                file_summaries.append(f"--- TỆP TIỀN SẮP XẾP: `{fp}` ---\n{first_lines}\n...")
-            existing_files_section = f"""
-### [CÁC TỆP TIỀN SẮP XẾP TRONG THƯ MỤC INPUT DO NGƯỜI DÙNG CUNG CẤP]:
-{chr(10).join(file_summaries)}
-
-QUY TẮC BẮT BUỘC ĐỐI VỚI THƯ MỤC TIỀN SẮP XẾP:
-1. Bạn ĐANG LÀM VIỆC TRỰC TIẾP TRÊN THƯ MỤC ĐÃ ĐƯỢC NGƯỜI DÙNG SẮP XẾP TRƯỚC Ở TRÊN.
-2. Hãy kế thừa, tái sử dụng các tệp, class, struct, hàm và package sẵn có trong thư mục này.
-3. Trong danh sách `files`:
-   - Nếu tệp đã có sẵn cần sửa đổi hoặc viết thêm logic: đặt `action: "MODIFY"`.
-   - Nếu cần tạo thêm tệp mới: đặt `action: "CREATE"`.
-   - Các tệp đã có sẵn nhưng KHÔNG cần sửa đổi gì thì vẫn liệt kê trong `files` với `action: "KEEP"` hoặc khai báo trong `dependencies` của các tệp khác.
-"""
-
-        # 4. Tạo Prompt lập kế hoạch kiến trúc
+        # 3. Tạo Prompt lập kế hoạch kiến trúc
         guidelines = self._get_language_guidelines(resolved_lang)
         json_schema_desc = """
 Trả về DUY NHẤT một JSON Object hợp lệ theo cấu trúc sau:
@@ -153,14 +133,20 @@ Nhiệm vụ: Phân tích yêu cầu bài toán và thiết kế cấu trúc ĐA
 
 ### [YÊU CẦU BÀI TOÁN]:
 {task_prompt}
-{existing_files_section}
 {rag_section}
 ### [QUY TẮC THIẾT KẾ KIẾN TRÚC]:
+### Nếu codebase rỗng:
 1. Thiết kế module hóa sạch sẽ, tách biệt trách nhiệm (Single Responsibility).
 2. Chuỗi trong mảng `execution_order` PHẢI KHỚP TỪNG KÝ TỰ với `filepath` trong danh sách `files`.
 3. Sắp xếp `execution_order` theo thứ tự Topo: File độc lập (Data Models/Headers/Interfaces) đứng trước, file cài đặt đứng giữa, file tích hợp chính (Main/Service) đứng cuối cùng.
+### Nếu codebase đã có sẵn:
+Hãy kế thừa, tái sử dụng các tệp, class, struct, hàm và package sẵn có trong thư mục này, chuẩn hóa lại tên class/hàm/interface signatures giữa các file, hoặc bổ sung/loại bỏ file cần thiết.
++++ Quy tắc sửa lỗi:
+- Tuân thủ yêu cầu bài toán, chỉ sửa đổi những file cần thiết, giữ nguyên các file đã đúng.
+- Nếu cần tạo file mới, hãy thêm vào danh sách `files` với `action: "CREATE"`.
+- Nếu file hiện tại cần sửa đổi, hãy đặt `action: "MODIFY"` và cập nhật `interface_summary` tương ứng.
+- Nếu file hiện tại không cần sửa đổi, hãy giữ nguyên `action: "KEEP"` và không thay đổi nội dung.
 {guidelines}
-
 ### [ĐỊNH DẠNG ĐẦU RA YÊU CẦU]:
 Chỉ trả về JSON object thuần túy, không chèn lời mở đầu hay kết luận ngoài JSON.
 {json_schema_desc}
@@ -195,35 +181,19 @@ Chỉ trả về JSON object thuần túy, không chèn lời mở đầu hay k�
         task_prompt: str,
         current_plan: MultiFilePlan,
         reviewer_instructions: str,
-        current_files: Dict[str, str], # <--- Nhận vào dictionary {filepath: code_content}
         error_log: str,
         current_folder: Optional[str] = None
     ) -> MultiFilePlan:
         """
         Cập nhật lại kế hoạch và cây thư mục khi Reviewer xác định lỗi Global.
         """
-        rag_query = f"{reviewer_instructions}\n{error_log}".strip()
-        graphrag_context = await self._retrieve_graphrag_context(current_folder, rag_query)
-        rag_section = f"\n### [NGỮ CẢNH CODEBASE HIỆN TẠI TỪ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
+        graphrag_context = await self._retrieve_graphrag_context(current_folder)
+        rag_section = f"\n### [NGỮ CẢNH CODEBASE ĐÃ CÓ TỪ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
         guidelines = self._get_language_guidelines(current_plan.target_language)
-
-        # --------------------------------------------------------------------------
-        # BƯỚC SỬA: Biến đổi `current_files` thành chuỗi tóm tắt mã nguồn thực tế
-        # --------------------------------------------------------------------------
-        code_snapshots = []
-        for filepath, code in current_files.items():
-            # Cắt bớt nếu file quá dài để tiết kiệm Token, chỉ lấy phần interface/signatures chính
-            snippet = code[:800] + "\n... [phần còn lại bị cắt bớt]" if len(code) > 800 else code
-            code_snapshots.append(f"--- TỆP `{filepath}` ---\n{snippet}\n")
-        
-        current_code_section = "\n".join(code_snapshots) if code_snapshots else "Không có mã nguồn thực tế."
 
         prompt = f"""BẠN LÀ SYSTEM ARCHITECT AGENT.
 Kế hoạch đa tệp hiện tại của bạn đã gặp **LỖI TOÀN CỤC (GLOBAL ARCHITECTURE ERROR)**.
 Yêu cầu bài toán: {task_prompt}
-### [MÃ NGUỒN HIỆN TẠI CỦA CÁC FILE ĐANG BỊ LỖI]:
-{current_code_section}
-
 ### [NHẬT KÝ LỖI SANDBOX]:
 {error_log}
 

@@ -5,6 +5,7 @@ Lưu trữ và quản lý Đồ thị tri thức (NetworkX DiGraph) và Cơ sở
 """
 
 import os
+import hashlib
 import networkx as nx
 import chromadb
 from typing import List, Dict, Any, Optional, Union
@@ -14,9 +15,19 @@ from .. import config
 from .ast_extractor import CodeChunk
 
 class GraphKnowledgeStore:
-    def __init__(self, chroma_dir: Optional[str] = None, graph_file: Optional[str] = None):
+    def __init__(
+        self,
+        chroma_dir: Optional[str] = None,
+        graph_file: Optional[str] = None,
+        codebase_path: Optional[str] = None
+    ):
         self.chroma_dir = chroma_dir or config.CHROMA_DB_DIR
         self.graph_file = graph_file or config.GRAPH_FILE_PATH
+        self.collection_name = config.COLLECTION_NAME
+        if codebase_path:
+            canonical_path = os.path.normcase(os.path.realpath(codebase_path))
+            path_hash = hashlib.sha256(canonical_path.encode("utf-8")).hexdigest()[:16]
+            self.collection_name = f"{self.collection_name}_{path_hash}"
         self.graph: nx.DiGraph = nx.DiGraph()
         self.chroma_client: Optional[chromadb.PersistentClient] = None
         self.collection = None
@@ -27,7 +38,7 @@ class GraphKnowledgeStore:
             self.chroma_client = chromadb.PersistentClient(path=self.chroma_dir)
             try:
                 self.collection = self.chroma_client.get_or_create_collection(
-                    name=config.COLLECTION_NAME,
+                    name=self.collection_name,
                     metadata={"hnsw:space": "cosine"}
                 )
             except Exception as e:
@@ -64,12 +75,11 @@ class GraphKnowledgeStore:
         except Exception as e:
             print(f"⚠️ [GraphKnowledgeStore] Không thể ghi file GML: {e}")
 
-        if not chunks:
-            return
-
         self._init_chroma()
         if self.collection is None:
-            return
+            raise RuntimeError(
+                f"Không thể khởi tạo ChromaDB collection '{self.collection_name}'."
+            )
 
         # Hỗ trợ cả CodeChunk instance và dictionary
         contents = [c.content if hasattr(c, "content") else c["content"] for c in chunks]
@@ -78,6 +88,19 @@ class GraphKnowledgeStore:
             c.to_metadata() if hasattr(c, "to_metadata") else c.get("metadata", {})
             for c in chunks
         ]
+
+        try:
+            existing_ids = self.collection.get(include=["metadatas"]).get("ids", [])
+            stale_ids = list(set(existing_ids) - set(ids))
+            if stale_ids:
+                self.collection.delete(ids=stale_ids)
+        except Exception as e:
+            raise RuntimeError(
+                f"Không thể đồng bộ cache ChromaDB cho '{self.collection_name}'."
+            ) from e
+
+        if not chunks:
+            return
 
         embeddings = await self.get_embeddings(contents)
         try:
@@ -88,7 +111,9 @@ class GraphKnowledgeStore:
                 ids=ids
             )
         except Exception as e:
-            print(f"⚠️ [GraphKnowledgeStore] Lỗi upsert vectors vào ChromaDB: {e}")
+            raise RuntimeError(
+                f"Không thể cập nhật cache ChromaDB cho '{self.collection_name}'."
+            ) from e
 
     def load_existing_graph(self) -> nx.DiGraph:
         if os.path.exists(self.graph_file) and os.path.getsize(self.graph_file) > 0:

@@ -37,33 +37,60 @@ class GraphRAGRetriever:
 
         return expanded_nodes
 
-    def get_codebase_summary(self, graph: nx.DiGraph) -> str:
-        """Tóm tắt cấu trúc cây thư mục và các thành phần chính trong đồ thị."""
+    @staticmethod
+    def get_codebase_manifest(graph: nx.DiGraph) -> str:
+        """Create a compact manifest of every file and definition in the graph."""
         if not graph or graph.number_of_nodes() == 0:
             return "Codebase hiện tại trống (Không có tệp tin hoặc node nào)."
 
-        file_nodes = [n for n, d in graph.nodes(data=True) if d.get("type") == "file"]
+        file_nodes = sorted(
+            (n for n, d in graph.nodes(data=True) if d.get("type") == "file"),
+            key=lambda node_id: str(graph.nodes[node_id].get("path", node_id))
+        )
         class_nodes = [n for n, d in graph.nodes(data=True) if d.get("type") in ["class", "struct"]]
         # Đếm cả function độc lập lẫn method thuộc class/struct
         func_nodes = [n for n, d in graph.nodes(data=True) if d.get("type") in ["function", "method"]]
 
         summary = [
-            f"- Tổng số Tệp tin: {len(file_nodes)}",
-            f"- Tổng số Class / Struct: {len(class_nodes)}",
-            f"- Tổng số Hàm / Phương thức: {len(func_nodes)}",
-            "\nDanh sách các tệp và định nghĩa:"
+            "### [CODEBASE MANIFEST TỪ ĐỒ THỊ]",
+            f"Tệp: {len(file_nodes)} | Class/Struct: {len(class_nodes)} | Hàm/Method: {len(func_nodes)}",
         ]
 
         for fn in file_nodes:
-            fpath = graph.nodes[fn].get("path", fn)
-            flang = graph.nodes[fn].get("lang", "")
-            defines = [v for u, v, d in graph.out_edges(fn, data=True) if d.get("relation") == "DEFINES"]
-            symbols = []
-            for d in defines:
-                ddata = graph.nodes.get(d, {})
-                symbols.append(f"{ddata.get('type')}: {ddata.get('name')}")
-            sym_str = f" -> [{', '.join(symbols)}]" if symbols else ""
-            summary.append(f"  * [{flang.upper()}] {fpath}{sym_str}")
+            file_data = graph.nodes[fn]
+            fpath = file_data.get("path", fn)
+            summary.append(f"- [{str(file_data.get('lang', '')).upper()}] {fpath}")
+
+            imports = sorted(
+                str(graph.nodes[node_id].get("name", node_id))
+                for _, node_id, edge_data in graph.out_edges(fn, data=True)
+                if edge_data.get("relation") == "IMPORTS"
+            )
+            if imports:
+                summary.append(f"  imports: {', '.join(imports)}")
+
+            definitions = [
+                node_id
+                for _, node_id, edge_data in graph.out_edges(fn, data=True)
+                if edge_data.get("relation") == "DEFINES"
+            ]
+            definitions.sort(
+                key=lambda node_id: (
+                    str(graph.nodes[node_id].get("type", "")),
+                    str(graph.nodes[node_id].get("name", ""))
+                )
+            )
+            for node_id in definitions:
+                data = graph.nodes[node_id]
+                node_type = data.get("type", "definition")
+                name = data.get("name", node_id)
+                if node_type in ["class", "struct"]:
+                    bases = data.get("bases", "")
+                    suffix = f" extends/implements {bases}" if bases else ""
+                    summary.append(f"  {node_type} {name}{suffix}")
+                else:
+                    args = data.get("args", "()")
+                    summary.append(f"  {node_type} {name}{args}")
 
         return "\n".join(summary)
 
@@ -107,28 +134,27 @@ class GraphRAGRetriever:
         # 3. Mở rộng đồ thị (Graph Expansion)
         all_related_node_ids = self.expand_nodes_via_graph(graph, seed_node_ids)
 
-        for nid in all_related_node_ids:
-            if self.store.collection and self.store.collection.count() > 0:
-                try:
-                    doc = self.store.collection.get(ids=[nid])
-                    if doc and doc.get("documents") and len(doc["documents"]) > 0 and doc["documents"][0]:
-                        retrieved_chunks.append(doc["documents"][0])
-                        continue
-                except Exception:
-                    pass
+        for nid in sorted(all_related_node_ids):
+            if not graph.has_node(nid):
+                continue
 
-            if graph.has_node(nid):
-                ndata = graph.nodes[nid]
-                ntype = ndata.get("type", "unknown")
-                # Hỗ trợ đầy đủ cả method bên cạnh function, class, struct
-                if ntype in ["function", "method", "class", "struct"]:
-                    retrieved_chunks.append(
-                        f"Graph Node: {nid}\nType: {ntype}\nName: {ndata.get('name')}\nFile: {ndata.get('file')}\nCode:\n{ndata.get('code', '')}"
-                    )
-                else:
-                    retrieved_chunks.append(f"Graph Node: {nid} (Type: {ntype})")
+            ndata = graph.nodes[nid]
+            if ndata.get("type") not in ["function", "method"]:
+                continue
 
+            code = str(ndata.get("code", "")).strip()
+            if not code:
+                continue
+
+            lang = str(ndata.get("lang", ""))
+            retrieved_chunks.append(
+                f"File: {ndata.get('file', '')}\n"
+                f"```{lang}\n{code}\n```"
+            )
+
+        manifest = self.get_codebase_manifest(graph)
         if not retrieved_chunks:
-            return self.get_codebase_summary(graph)
+            return manifest
 
-        return "\n\n---\n\n".join(retrieved_chunks)
+        retrieved_context = "\n\n---\n\n".join(retrieved_chunks)
+        return f"{manifest}\n\n### [CÁC ĐOẠN LIÊN QUAN ĐƯỢC TRUY XUẤT]\n{retrieved_context}"

@@ -34,7 +34,7 @@ LLM_TIMEOUT: int = 300  # Giây
 # 2. CẤU HÌNH BỘ ĐIỀU PHỐI VÀ VÒNG LẶP TỰ SỬA LỖI (SELF-CORRECTION)
 # ==============================================================================
 # Số vòng lặp tối đa sửa lỗi giữa Planner - Coder - Tester - Reviewer
-MAX_SELF_CORRECTION_CYCLES: int = 10
+MAX_SELF_CORRECTION_CYCLES: int = 5
 
 # Số vòng kiểm thử thành công liên tiếp cần đạt để coi là hoàn toàn ổn định
 STABILITY_THRESHOLD: int = 1

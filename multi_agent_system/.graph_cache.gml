@@ -2,474 +2,319 @@ graph [
   directed 1
   node [
     id 0
-    label "file:main.c"
+    label "file:Main.java"
     type "file"
-    path "main.c"
-    lang "c"
+    path "Main.java"
+    lang "java"
   ]
   node [
     id 1
-    label "import:include/lru_cache.h"
+    label "import:model.*"
     type "import"
-    name "include/lru_cache.h"
+    name "model.*"
   ]
   node [
     id 2
-    label "import:stdlib.h"
+    label "import:strategy.*"
     type "import"
-    name "stdlib.h"
+    name "strategy.*"
   ]
   node [
     id 3
-    label "import:string.h"
+    label "import:service.*"
     type "import"
-    name "string.h"
+    name "service.*"
   ]
   node [
     id 4
-    label "import:assert.h"
+    label "import:exception.GatewayException"
     type "import"
-    name "assert.h"
+    name "exception.GatewayException"
   ]
   node [
     id 5
-    label "func:main.c:test_memory_leak_free:6"
-    type "function"
-    name "test_memory_leak_free"
-    file "main.c"
-    lang "c"
-    args "()"
-    code "void test_memory_leak_free() {&#13;&#10;    struct LRUCache* cache = lru_cache_create(2, free);&#13;&#10;    lru_cache_put(cache, &#34;key1&#34;, malloc(10));&#13;&#10;    lru_cache_put(cache, &#34;key2&#34;, malloc(20));&#13;&#10;    lru_cache_destroy(cache);&#13;&#10;}"
+    label "struct:Main.java:Main"
+    type "class"
+    name "Main"
+    file "Main.java"
+    lang "java"
+    bases ""
   ]
   node [
     id 6
-    label "call_ref:lru_cache_destroy"
+    label "func:Main.java:Main.main:7"
+    type "method"
+    name "main"
+    file "Main.java"
+    lang "java"
+    args "(String[] args)"
+    code "public static void main(String[] args) {&#13;&#10;        PaymentRequest request = new PaymentRequest(&#34;REQ_001&#34;, 100.0, Currency.USD);&#13;&#10;        PaymentProcessor processor = new PaymentProcessor(new CreditCardStrategy());&#13;&#10;&#13;&#10;        try {&#13;&#10;            processor.execute(request);&#13;&#10;        } catch (GatewayException e) {&#13;&#10;            System.err.println(&#34;L&#7895;i: &#34; + e.getMessage());&#13;&#10;        }&#13;&#10;    }"
   ]
   node [
     id 7
-    label "call_ref:lru_cache_put"
+    label "call_ref:println"
   ]
   node [
     id 8
-    label "call_ref:malloc"
+    label "call_ref:getMessage"
   ]
   node [
     id 9
-    label "call_ref:lru_cache_create"
+    label "call_ref:execute"
   ]
   node [
     id 10
-    label "func:main.c:test_eviction_order:13"
-    type "function"
-    name "test_eviction_order"
-    file "main.c"
-    lang "c"
-    args "()"
-    code "void test_eviction_order() {&#13;&#10;    struct LRUCache* cache = lru_cache_create(2, free);&#13;&#10;    lru_cache_put(cache, &#34;key1&#34;, malloc(10));&#13;&#10;    lru_cache_put(cache, &#34;key2&#34;, malloc(20));&#13;&#10;    lru_cache_put(cache, &#34;key3&#34;, malloc(30));&#13;&#10;    assert(lru_cache_get(cache, &#34;key1&#34;) == NULL);&#13;&#10;    lru_cache_destroy(cache);&#13;&#10;}"
+    label "file:exception\GatewayException.java"
+    type "file"
+    path "exception\GatewayException.java"
+    lang "java"
   ]
   node [
     id 11
-    label "call_ref:assert"
+    label "struct:exception\GatewayException.java:GatewayException"
+    type "class"
+    name "GatewayException"
+    file "exception\GatewayException.java"
+    lang "java"
+    bases "Exception"
   ]
   node [
     id 12
-    label "call_ref:lru_cache_get"
+    label "class_ref:Exception"
   ]
   node [
     id 13
-    label "func:main.c:test_cache_hit_miss:22"
-    type "function"
-    name "test_cache_hit_miss"
-    file "main.c"
-    lang "c"
-    args "()"
-    code "void test_cache_hit_miss() {&#13;&#10;    struct LRUCache* cache = lru_cache_create(2, free);&#13;&#10;    lru_cache_put(cache, &#34;key1&#34;, malloc(10));&#13;&#10;    assert(lru_cache_get(cache, &#34;key1&#34;) != NULL);&#13;&#10;    assert(lru_cache_get(cache, &#34;key2&#34;) == NULL);&#13;&#10;    lru_cache_destroy(cache);&#13;&#10;}"
+    label "func:exception\GatewayException.java:GatewayException.GatewayException:4"
+    type "method"
+    name "GatewayException"
+    file "exception\GatewayException.java"
+    lang "java"
+    args "(String message)"
+    code "public GatewayException(String message) {&#13;&#10;        super(message);&#13;&#10;    }"
   ]
   node [
     id 14
-    label "func:main.c:main:30"
-    type "function"
-    name "main"
-    file "main.c"
-    lang "c"
-    args "()"
-    code "int main() {&#13;&#10;    test_memory_leak_free();&#13;&#10;    test_eviction_order();&#13;&#10;    test_cache_hit_miss();&#13;&#10;    return 0;&#13;&#10;}"
+    label "file:model\Currency.java"
+    type "file"
+    path "model\Currency.java"
+    lang "java"
   ]
   node [
     id 15
-    label "call_ref:test_cache_hit_miss"
+    label "struct:model\Currency.java:Currency"
+    type "class"
+    name "Currency"
+    file "model\Currency.java"
+    lang "java"
+    bases ""
   ]
   node [
     id 16
-    label "call_ref:test_eviction_order"
+    label "file:model\PaymentRequest.java"
+    type "file"
+    path "model\PaymentRequest.java"
+    lang "java"
   ]
   node [
     id 17
-    label "call_ref:test_memory_leak_free"
+    label "struct:model\PaymentRequest.java:PaymentRequest"
+    type "class"
+    name "PaymentRequest"
+    file "model\PaymentRequest.java"
+    lang "java"
+    bases ""
   ]
   node [
     id 18
-    label "file:src\doubly_linked_list.c"
-    type "file"
-    path "src\doubly_linked_list.c"
-    lang "c"
+    label "func:model\PaymentRequest.java:PaymentRequest.PaymentRequest:8"
+    type "method"
+    name "PaymentRequest"
+    file "model\PaymentRequest.java"
+    lang "java"
+    args "(String requestId, double amount, Currency currency)"
+    code "public PaymentRequest(String requestId, double amount, Currency currency) {&#13;&#10;        this.requestId = requestId;&#13;&#10;        this.amount = amount;&#13;&#10;        this.currency = currency;&#13;&#10;    }"
   ]
   node [
     id 19
-    label "import:doubly_linked_list.h"
-    type "import"
-    name "doubly_linked_list.h"
+    label "func:model\PaymentRequest.java:PaymentRequest.getRequestId:14"
+    type "method"
+    name "getRequestId"
+    file "model\PaymentRequest.java"
+    lang "java"
+    args "()"
+    code "public String getRequestId() { return requestId; }"
   ]
   node [
     id 20
-    label "func:src\doubly_linked_list.c:node_create:4"
-    type "function"
-    name "node_create"
-    file "src\doubly_linked_list.c"
-    lang "c"
+    label "func:model\PaymentRequest.java:PaymentRequest.getAmount:15"
+    type "method"
+    name "getAmount"
+    file "model\PaymentRequest.java"
+    lang "java"
     args "()"
-    code "struct Node* node_create(void* value) {&#13;&#10;    struct Node* node = (struct Node*)malloc(sizeof(struct Node));&#13;&#10;    node->value = value;&#13;&#10;    node->prev = NULL;&#13;&#10;    node->next = NULL;&#13;&#10;    return node;&#13;&#10;}"
+    code "public double getAmount() { return amount; }"
   ]
   node [
     id 21
-    label "func:src\doubly_linked_list.c:node_destroy:12"
-    type "function"
-    name "node_destroy"
-    file "src\doubly_linked_list.c"
-    lang "c"
+    label "func:model\PaymentRequest.java:PaymentRequest.getCurrency:16"
+    type "method"
+    name "getCurrency"
+    file "model\PaymentRequest.java"
+    lang "java"
     args "()"
-    code "void node_destroy(struct Node* node) {&#13;&#10;    free(node);&#13;&#10;}"
+    code "public Currency getCurrency() { return currency; }"
   ]
   node [
     id 22
-    label "call_ref:free"
+    label "file:service\PaymentProcessor.java"
+    type "file"
+    path "service\PaymentProcessor.java"
+    lang "java"
   ]
   node [
     id 23
-    label "file:src\hash_map.c"
-    type "file"
-    path "src\hash_map.c"
-    lang "c"
+    label "import:strategy.IPaymentStrategy"
+    type "import"
+    name "strategy.IPaymentStrategy"
   ]
   node [
     id 24
-    label "import:hash_map.h"
+    label "import:model.PaymentRequest"
     type "import"
-    name "hash_map.h"
+    name "model.PaymentRequest"
   ]
   node [
     id 25
-    label "func:src\hash_map.c:hash:3"
-    type "function"
-    name "hash"
-    file "src\hash_map.c"
-    lang "c"
-    args "()"
-    code "size_t hash(const char* key, size_t capacity) {&#13;&#10;    size_t hash_value = 0;&#13;&#10;    while (*key) {&#13;&#10;        hash_value = (hash_value * 31) + *key++;&#13;&#10;    }&#13;&#10;    return hash_value % capacity;&#13;&#10;}"
+    label "struct:service\PaymentProcessor.java:PaymentProcessor"
+    type "class"
+    name "PaymentProcessor"
+    file "service\PaymentProcessor.java"
+    lang "java"
+    bases ""
   ]
   node [
     id 26
-    label "func:src\hash_map.c:evict_lru:11"
-    type "function"
-    name "evict_lru"
-    file "src\hash_map.c"
-    lang "c"
-    args "()"
-    code "void evict_lru(struct HashMap* map) {&#13;&#10;    // Implement LRU eviction logic here&#13;&#10;    // This is a placeholder function&#13;&#10;}"
+    label "func:service\PaymentProcessor.java:PaymentProcessor.PaymentProcessor:10"
+    type "method"
+    name "PaymentProcessor"
+    file "service\PaymentProcessor.java"
+    lang "java"
+    args "(IPaymentStrategy strategy)"
+    code "public PaymentProcessor(IPaymentStrategy strategy) {&#13;&#10;        this.strategy = strategy;&#13;&#10;    }"
   ]
   node [
     id 27
-    label "file:src\lru_cache.c"
-    type "file"
-    path "src\lru_cache.c"
-    lang "c"
+    label "func:service\PaymentProcessor.java:PaymentProcessor.setStrategy:14"
+    type "method"
+    name "setStrategy"
+    file "service\PaymentProcessor.java"
+    lang "java"
+    args "(IPaymentStrategy strategy)"
+    code "public void setStrategy(IPaymentStrategy strategy) {&#13;&#10;        this.strategy = strategy;&#13;&#10;    }"
   ]
   node [
     id 28
-    label "import:src/doubly_linked_list.h"
-    type "import"
-    name "src/doubly_linked_list.h"
+    label "func:service\PaymentProcessor.java:PaymentProcessor.execute:18"
+    type "method"
+    name "execute"
+    file "service\PaymentProcessor.java"
+    lang "java"
+    args "(PaymentRequest request)"
+    code "public boolean execute(PaymentRequest request) throws GatewayException {&#13;&#10;        return strategy.pay(request);&#13;&#10;    }"
   ]
   node [
     id 29
-    label "import:src/hash_map.h"
-    type "import"
-    name "src/hash_map.h"
+    label "call_ref:pay"
   ]
   node [
     id 30
-    label "struct:src\lru_cache.c:LRUCache"
-    type "struct"
-    name "LRUCache"
-    file "src\lru_cache.c"
-    lang "c"
-    bases ""
+    label "file:strategy\CreditCardStrategy.java"
+    type "file"
+    path "strategy\CreditCardStrategy.java"
+    lang "java"
   ]
   node [
     id 31
-    label "struct:src\lru_cache.c:HashMap"
-    type "struct"
-    name "HashMap"
-    file "src\lru_cache.c"
-    lang "c"
-    bases ""
+    label "struct:strategy\CreditCardStrategy.java:CreditCardStrategy"
+    type "class"
+    name "CreditCardStrategy"
+    file "strategy\CreditCardStrategy.java"
+    lang "java"
+    bases "IPaymentStrategy"
   ]
   node [
     id 32
-    label "struct:src\lru_cache.c:DoublyLinkedList"
-    type "struct"
-    name "DoublyLinkedList"
-    file "src\lru_cache.c"
-    lang "c"
-    bases ""
+    label "class_ref:IPaymentStrategy"
   ]
   node [
     id 33
-    label "func:src\lru_cache.c:lru_cache_create:12"
-    type "function"
-    name "lru_cache_create"
-    file "src\lru_cache.c"
-    lang "c"
-    args "()"
-    code "struct LRUCache* lru_cache_create(size_t capacity, void (*free_fn)(void*)) {&#13;&#10;    struct LRUCache* cache = (struct LRUCache*)malloc(sizeof(struct LRUCache));&#13;&#10;    cache->map = hash_map_create(capacity, free_fn);&#13;&#10;    cache->list = doubly_linked_list_create();&#13;&#10;    cache->capacity = capacity;&#13;&#10;    cache->free_fn = free_fn;&#13;&#10;    return cache;&#13;&#10;}"
+    label "func:strategy\CreditCardStrategy.java:CreditCardStrategy.pay:7"
+    type "method"
+    name "pay"
+    file "strategy\CreditCardStrategy.java"
+    lang "java"
+    args "(PaymentRequest request)"
+    code "@Override&#13;&#10;    public boolean pay(PaymentRequest request) throws GatewayException {&#13;&#10;        if (request.getAmount() <= 0) {&#13;&#10;            throw new GatewayException(&#34;CreditCard: S&#7889; ti&#7873;n kh&#244;ng h&#7907;p l&#7879;&#34;);&#13;&#10;        }&#13;&#10;        System.out.println(&#34;Thanh to&#225;n CreditCard th&#224;nh c&#244;ng cho request &#34; + request.getRequestId());&#13;&#10;        return true;&#13;&#10;    }"
   ]
   node [
     id 34
-    label "call_ref:doubly_linked_list_create"
+    label "call_ref:getRequestId"
   ]
   node [
     id 35
-    label "call_ref:hash_map_create"
+    label "call_ref:getAmount"
   ]
   node [
     id 36
-    label "func:src\lru_cache.c:lru_cache_put:21"
-    type "function"
-    name "lru_cache_put"
-    file "src\lru_cache.c"
-    lang "c"
-    args "()"
-    code "void lru_cache_put(struct LRUCache* cache, const char* key, void* value) {&#13;&#10;    struct Node* node = hash_map_get(cache->map, key);&#13;&#10;    if (node) {&#13;&#10;        doubly_linked_list_remove(cache->list, node);&#13;&#10;    } else {&#13;&#10;        if (cache->list->size == cache->capacity) {&#13;&#10;            struct Node* lru_node = cache->list->head;&#13;&#10;            hash_map_put(cache->map, lru_node->key, NULL);&#13;&#10;            doubly_linked_list_remove(cache->list, lru_node);&#13;&#10;            cache->free_fn(lru_node->value);&#13;&#10;            free(lru_node);&#13;&#10;        }&#13;&#10;        node = (struct Node*)malloc(sizeof(struct Node));&#13;&#10;        node->key = strdup(key);&#13;&#10;    }&#13;&#10;    node->value = value;&#13;&#10;    hash_map_put(cache->map, key, node);&#13;&#10;    doubly_linked_list_insert(cache->list, node);&#13;&#10;}"
+    label "file:strategy\IPaymentStrategy.java"
+    type "file"
+    path "strategy\IPaymentStrategy.java"
+    lang "java"
   ]
   node [
     id 37
-    label "call_ref:doubly_linked_list_insert"
+    label "struct:strategy\IPaymentStrategy.java:IPaymentStrategy"
+    type "class"
+    name "IPaymentStrategy"
+    file "strategy\IPaymentStrategy.java"
+    lang "java"
+    bases ""
   ]
   node [
     id 38
-    label "call_ref:hash_map_put"
+    label "func:strategy\IPaymentStrategy.java:IPaymentStrategy.pay:7"
+    type "method"
+    name "pay"
+    file "strategy\IPaymentStrategy.java"
+    lang "java"
+    args "(PaymentRequest request)"
+    code "boolean pay(PaymentRequest request) throws GatewayException;"
   ]
   node [
     id 39
-    label "call_ref:strdup"
+    label "file:strategy\PaypalStrategy.java"
+    type "file"
+    path "strategy\PaypalStrategy.java"
+    lang "java"
   ]
   node [
     id 40
-    label "call_ref:free_fn"
+    label "struct:strategy\PaypalStrategy.java:PaypalStrategy"
+    type "class"
+    name "PaypalStrategy"
+    file "strategy\PaypalStrategy.java"
+    lang "java"
+    bases "IPaymentStrategy"
   ]
   node [
     id 41
-    label "call_ref:doubly_linked_list_remove"
-  ]
-  node [
-    id 42
-    label "call_ref:hash_map_get"
-  ]
-  node [
-    id 43
-    label "func:src\lru_cache.c:lru_cache_get:41"
-    type "function"
-    name "lru_cache_get"
-    file "src\lru_cache.c"
-    lang "c"
-    args "()"
-    code "void* lru_cache_get(struct LRUCache* cache, const char* key) {&#13;&#10;    struct Node* node = hash_map_get(cache->map, key);&#13;&#10;    if (node) {&#13;&#10;        doubly_linked_list_remove(cache->list, node);&#13;&#10;        doubly_linked_list_insert(cache->list, node);&#13;&#10;        return node->value;&#13;&#10;    }&#13;&#10;    return NULL;&#13;&#10;}"
-  ]
-  node [
-    id 44
-    label "func:src\lru_cache.c:lru_cache_destroy:51"
-    type "function"
-    name "lru_cache_destroy"
-    file "src\lru_cache.c"
-    lang "c"
-    args "()"
-    code "void lru_cache_destroy(struct LRUCache* cache) {&#13;&#10;    hash_map_destroy(cache->map);&#13;&#10;    doubly_linked_list_destroy(cache->list);&#13;&#10;    free(cache);&#13;&#10;}"
-  ]
-  node [
-    id 45
-    label "call_ref:doubly_linked_list_destroy"
-  ]
-  node [
-    id 46
-    label "call_ref:hash_map_destroy"
-  ]
-  node [
-    id 47
-    label "file:include\lru_cache.h"
-    type "file"
-    path "include\lru_cache.h"
-    lang "c"
-  ]
-  node [
-    id 48
-    label "import:stddef.h"
-    type "import"
-    name "stddef.h"
-  ]
-  node [
-    id 49
-    label "struct:include\lru_cache.h:LRUCache"
-    type "struct"
-    name "LRUCache"
-    file "include\lru_cache.h"
-    lang "c"
-    bases ""
-  ]
-  node [
-    id 50
-    label "file:src\doubly_linked_list.h"
-    type "file"
-    path "src\doubly_linked_list.h"
-    lang "c"
-  ]
-  node [
-    id 51
-    label "struct:src\doubly_linked_list.h:Node"
-    type "struct"
-    name "Node"
-    file "src\doubly_linked_list.h"
-    lang "c"
-    bases ""
-  ]
-  node [
-    id 52
-    label "struct:src\doubly_linked_list.h:DoublyLinkedList"
-    type "struct"
-    name "DoublyLinkedList"
-    file "src\doubly_linked_list.h"
-    lang "c"
-    bases ""
-  ]
-  node [
-    id 53
-    label "func:src\doubly_linked_list.h:doubly_linked_list_create:18"
-    type "function"
-    name "doubly_linked_list_create"
-    file "src\doubly_linked_list.h"
-    lang "c"
-    args "()"
-    code "struct DoublyLinkedList* doubly_linked_list_create() {&#13;&#10;    struct DoublyLinkedList* list = (struct DoublyLinkedList*)malloc(sizeof(struct DoublyLinkedList));&#13;&#10;    list->head = NULL;&#13;&#10;    list->tail = NULL;&#13;&#10;    list->size = 0;&#13;&#10;    return list;&#13;&#10;}"
-  ]
-  node [
-    id 54
-    label "func:src\doubly_linked_list.h:doubly_linked_list_destroy:26"
-    type "function"
-    name "doubly_linked_list_destroy"
-    file "src\doubly_linked_list.h"
-    lang "c"
-    args "()"
-    code "void doubly_linked_list_destroy(struct DoublyLinkedList* list) {&#13;&#10;    struct Node* current = list->head;&#13;&#10;    while (current != NULL) {&#13;&#10;        struct Node* next = current->next;&#13;&#10;        free(current);&#13;&#10;        current = next;&#13;&#10;    }&#13;&#10;    free(list);&#13;&#10;}"
-  ]
-  node [
-    id 55
-    label "func:src\doubly_linked_list.h:doubly_linked_list_insert:36"
-    type "function"
-    name "doubly_linked_list_insert"
-    file "src\doubly_linked_list.h"
-    lang "c"
-    args "()"
-    code "void doubly_linked_list_insert(struct DoublyLinkedList* list, struct Node* node) {&#13;&#10;    if (list->head == NULL) {&#13;&#10;        list->head = node;&#13;&#10;        list->tail = node;&#13;&#10;    } else {&#13;&#10;        list->tail->next = node;&#13;&#10;        node->prev = list->tail;&#13;&#10;        list->tail = node;&#13;&#10;    }&#13;&#10;    list->size++;&#13;&#10;}"
-  ]
-  node [
-    id 56
-    label "func:src\doubly_linked_list.h:doubly_linked_list_remove:48"
-    type "function"
-    name "doubly_linked_list_remove"
-    file "src\doubly_linked_list.h"
-    lang "c"
-    args "()"
-    code "void doubly_linked_list_remove(struct DoublyLinkedList* list, struct Node* node) {&#13;&#10;    if (node->prev != NULL) {&#13;&#10;        node->prev->next = node->next;&#13;&#10;    } else {&#13;&#10;        list->head = node->next;&#13;&#10;    }&#13;&#10;    if (node->next != NULL) {&#13;&#10;        node->next->prev = node->prev;&#13;&#10;    } else {&#13;&#10;        list->tail = node->prev;&#13;&#10;    }&#13;&#10;    free(node);&#13;&#10;    list->size--;&#13;&#10;}"
-  ]
-  node [
-    id 57
-    label "file:src\hash_map.h"
-    type "file"
-    path "src\hash_map.h"
-    lang "c"
-  ]
-  node [
-    id 58
-    label "struct:src\hash_map.h:Node"
-    type "struct"
-    name "Node"
-    file "src\hash_map.h"
-    lang "c"
-    bases ""
-  ]
-  node [
-    id 59
-    label "struct:src\hash_map.h:HashMap"
-    type "struct"
-    name "HashMap"
-    file "src\hash_map.h"
-    lang "c"
-    bases ""
-  ]
-  node [
-    id 60
-    label "func:src\hash_map.h:hash_map_create:17"
-    type "function"
-    name "hash_map_create"
-    file "src\hash_map.h"
-    lang "c"
-    args "()"
-    code "struct HashMap* hash_map_create(size_t capacity, void (*free_fn)(void*)) {&#13;&#10;    struct HashMap* map = (struct HashMap*)malloc(sizeof(struct HashMap));&#13;&#10;    map->capacity = capacity;&#13;&#10;    map->size = 0;&#13;&#10;    map->buckets = (struct Node**)calloc(capacity, sizeof(struct Node*));&#13;&#10;    map->free_fn = free_fn;&#13;&#10;    return map;&#13;&#10;}"
-  ]
-  node [
-    id 61
-    label "call_ref:calloc"
-  ]
-  node [
-    id 62
-    label "func:src\hash_map.h:hash_map_destroy:26"
-    type "function"
-    name "hash_map_destroy"
-    file "src\hash_map.h"
-    lang "c"
-    args "()"
-    code "void hash_map_destroy(struct HashMap* map) {&#13;&#10;    for (size_t i = 0; i < map->capacity; i++) {&#13;&#10;        struct Node* node = map->buckets[i];&#13;&#10;        while (node) {&#13;&#10;            struct Node* next = node->next;&#13;&#10;            map->free_fn(node->value);&#13;&#10;            free(node);&#13;&#10;            node = next;&#13;&#10;        }&#13;&#10;    }&#13;&#10;    free(map->buckets);&#13;&#10;    free(map);&#13;&#10;}"
-  ]
-  node [
-    id 63
-    label "func:src\hash_map.h:hash_map_get:40"
-    type "function"
-    name "hash_map_get"
-    file "src\hash_map.h"
-    lang "c"
-    args "()"
-    code "struct Node* hash_map_get(struct HashMap* map, const char* key) {&#13;&#10;    size_t index = hash(key, map->capacity);&#13;&#10;    struct Node* node = map->buckets[index];&#13;&#10;    while (node) {&#13;&#10;        if (strcmp(node->key, key) == 0) {&#13;&#10;            return node;&#13;&#10;        }&#13;&#10;        node = node->next;&#13;&#10;    }&#13;&#10;    return NULL;&#13;&#10;}"
-  ]
-  node [
-    id 64
-    label "call_ref:strcmp"
-  ]
-  node [
-    id 65
-    label "call_ref:hash"
-  ]
-  node [
-    id 66
-    label "func:src\hash_map.h:hash_map_put:52"
-    type "function"
-    name "hash_map_put"
-    file "src\hash_map.h"
-    lang "c"
-    args "()"
-    code "void hash_map_put(struct HashMap* map, const char* key, struct Node* node) {&#13;&#10;    size_t index = hash(key, map->capacity);&#13;&#10;    node->next = map->buckets[index];&#13;&#10;    map->buckets[index] = node;&#13;&#10;    map->size++;&#13;&#10;    if (map->size > map->capacity) {&#13;&#10;        evict_lru(map);&#13;&#10;    }&#13;&#10;}"
-  ]
-  node [
-    id 67
-    label "call_ref:evict_lru"
+    label "func:strategy\PaypalStrategy.java:PaypalStrategy.pay:7"
+    type "method"
+    name "pay"
+    file "strategy\PaypalStrategy.java"
+    lang "java"
+    args "(PaymentRequest request)"
+    code "@Override&#13;&#10;    public boolean pay(PaymentRequest request) throws GatewayException {&#13;&#10;        if (request.getAmount() <= 0) {&#13;&#10;            throw new GatewayException(&#34;Paypal: S&#7889; ti&#7873;n kh&#244;ng h&#7907;p l&#7879;&#34;);&#13;&#10;        }&#13;&#10;        System.out.println(&#34;Thanh to&#225;n Paypal th&#224;nh c&#244;ng cho request &#34; + request.getRequestId());&#13;&#10;        return true;&#13;&#10;    }"
   ]
   edge [
     source 0
@@ -498,208 +343,188 @@ graph [
   ]
   edge [
     source 0
-    target 10
+    target 6
     relation "DEFINES"
   ]
   edge [
-    source 0
+    source 5
+    target 6
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 6
+    target 7
+    relation "CALLS"
+  ]
+  edge [
+    source 6
+    target 8
+    relation "CALLS"
+  ]
+  edge [
+    source 6
+    target 9
+    relation "CALLS"
+  ]
+  edge [
+    source 10
+    target 11
+    relation "DEFINES"
+  ]
+  edge [
+    source 10
     target 13
     relation "DEFINES"
   ]
   edge [
-    source 0
-    target 14
-    relation "DEFINES"
-  ]
-  edge [
-    source 5
-    target 6
-    relation "CALLS"
-  ]
-  edge [
-    source 5
-    target 7
-    relation "CALLS"
-  ]
-  edge [
-    source 5
-    target 8
-    relation "CALLS"
-  ]
-  edge [
-    source 5
-    target 9
-    relation "CALLS"
-  ]
-  edge [
-    source 10
-    target 6
-    relation "CALLS"
-  ]
-  edge [
-    source 10
-    target 11
-    relation "CALLS"
-  ]
-  edge [
-    source 10
+    source 11
     target 12
-    relation "CALLS"
+    relation "INHERITS"
   ]
   edge [
-    source 10
-    target 7
-    relation "CALLS"
-  ]
-  edge [
-    source 10
-    target 8
-    relation "CALLS"
-  ]
-  edge [
-    source 10
-    target 9
-    relation "CALLS"
-  ]
-  edge [
-    source 13
-    target 6
-    relation "CALLS"
-  ]
-  edge [
-    source 13
-    target 11
-    relation "CALLS"
-  ]
-  edge [
-    source 13
-    target 12
-    relation "CALLS"
-  ]
-  edge [
-    source 13
-    target 7
-    relation "CALLS"
-  ]
-  edge [
-    source 13
-    target 8
-    relation "CALLS"
-  ]
-  edge [
-    source 13
-    target 9
-    relation "CALLS"
+    source 11
+    target 13
+    relation "HAS_METHOD"
   ]
   edge [
     source 14
     target 15
-    relation "CALLS"
+    relation "DEFINES"
   ]
   edge [
-    source 14
-    target 16
-    relation "CALLS"
-  ]
-  edge [
-    source 14
+    source 16
     target 17
-    relation "CALLS"
+    relation "DEFINES"
   ]
   edge [
-    source 18
+    source 16
+    target 18
+    relation "DEFINES"
+  ]
+  edge [
+    source 16
     target 19
-    relation "IMPORTS"
+    relation "DEFINES"
   ]
   edge [
-    source 18
-    target 2
-    relation "IMPORTS"
-  ]
-  edge [
-    source 18
+    source 16
     target 20
     relation "DEFINES"
   ]
   edge [
-    source 18
+    source 16
     target 21
     relation "DEFINES"
   ]
   edge [
-    source 20
-    target 8
-    relation "CALLS"
+    source 17
+    target 18
+    relation "HAS_METHOD"
   ]
   edge [
-    source 21
-    target 22
-    relation "CALLS"
+    source 17
+    target 19
+    relation "HAS_METHOD"
   ]
   edge [
-    source 23
+    source 17
+    target 20
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 17
+    target 21
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 22
+    target 23
+    relation "IMPORTS"
+  ]
+  edge [
+    source 22
     target 24
     relation "IMPORTS"
   ]
   edge [
-    source 23
+    source 22
+    target 4
+    relation "IMPORTS"
+  ]
+  edge [
+    source 22
     target 25
     relation "DEFINES"
   ]
   edge [
-    source 23
+    source 22
     target 26
     relation "DEFINES"
   ]
   edge [
-    source 27
-    target 1
-    relation "IMPORTS"
-  ]
-  edge [
-    source 27
-    target 28
-    relation "IMPORTS"
-  ]
-  edge [
-    source 27
-    target 29
-    relation "IMPORTS"
-  ]
-  edge [
-    source 27
-    target 30
+    source 22
+    target 27
     relation "DEFINES"
   ]
   edge [
-    source 27
+    source 22
+    target 28
+    relation "DEFINES"
+  ]
+  edge [
+    source 25
+    target 26
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 25
+    target 27
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 25
+    target 28
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 28
+    target 29
+    relation "CALLS"
+  ]
+  edge [
+    source 30
+    target 24
+    relation "IMPORTS"
+  ]
+  edge [
+    source 30
+    target 4
+    relation "IMPORTS"
+  ]
+  edge [
+    source 30
     target 31
     relation "DEFINES"
   ]
   edge [
-    source 27
-    target 32
-    relation "DEFINES"
-  ]
-  edge [
-    source 27
+    source 30
     target 33
     relation "DEFINES"
   ]
   edge [
-    source 27
-    target 36
-    relation "DEFINES"
+    source 31
+    target 32
+    relation "INHERITS"
   ]
   edge [
-    source 27
-    target 43
-    relation "DEFINES"
+    source 31
+    target 33
+    relation "HAS_METHOD"
   ]
   edge [
-    source 27
-    target 44
-    relation "DEFINES"
+    source 33
+    target 7
+    relation "CALLS"
   ]
   edge [
     source 33
@@ -712,223 +537,73 @@ graph [
     relation "CALLS"
   ]
   edge [
-    source 33
-    target 8
-    relation "CALLS"
+    source 36
+    target 24
+    relation "IMPORTS"
+  ]
+  edge [
+    source 36
+    target 4
+    relation "IMPORTS"
   ]
   edge [
     source 36
     target 37
-    relation "CALLS"
+    relation "DEFINES"
   ]
   edge [
     source 36
     target 38
-    relation "CALLS"
+    relation "DEFINES"
   ]
   edge [
-    source 36
-    target 39
-    relation "CALLS"
+    source 37
+    target 38
+    relation "HAS_METHOD"
   ]
   edge [
-    source 36
-    target 8
-    relation "CALLS"
+    source 39
+    target 24
+    relation "IMPORTS"
   ]
   edge [
-    source 36
-    target 22
-    relation "CALLS"
+    source 39
+    target 4
+    relation "IMPORTS"
   ]
   edge [
-    source 36
+    source 39
     target 40
-    relation "CALLS"
+    relation "DEFINES"
   ]
   edge [
-    source 36
+    source 39
     target 41
-    relation "CALLS"
+    relation "DEFINES"
   ]
   edge [
-    source 36
-    target 42
-    relation "CALLS"
+    source 40
+    target 32
+    relation "INHERITS"
   ]
   edge [
-    source 43
-    target 37
-    relation "CALLS"
-  ]
-  edge [
-    source 43
+    source 40
     target 41
+    relation "HAS_METHOD"
+  ]
+  edge [
+    source 41
+    target 7
     relation "CALLS"
   ]
   edge [
-    source 43
-    target 42
+    source 41
+    target 34
     relation "CALLS"
   ]
   edge [
-    source 44
-    target 22
-    relation "CALLS"
-  ]
-  edge [
-    source 44
-    target 45
-    relation "CALLS"
-  ]
-  edge [
-    source 44
-    target 46
-    relation "CALLS"
-  ]
-  edge [
-    source 47
-    target 48
-    relation "IMPORTS"
-  ]
-  edge [
-    source 47
-    target 49
-    relation "DEFINES"
-  ]
-  edge [
-    source 50
-    target 48
-    relation "IMPORTS"
-  ]
-  edge [
-    source 50
-    target 51
-    relation "DEFINES"
-  ]
-  edge [
-    source 50
-    target 52
-    relation "DEFINES"
-  ]
-  edge [
-    source 50
-    target 53
-    relation "DEFINES"
-  ]
-  edge [
-    source 50
-    target 54
-    relation "DEFINES"
-  ]
-  edge [
-    source 50
-    target 55
-    relation "DEFINES"
-  ]
-  edge [
-    source 50
-    target 56
-    relation "DEFINES"
-  ]
-  edge [
-    source 53
-    target 8
-    relation "CALLS"
-  ]
-  edge [
-    source 54
-    target 22
-    relation "CALLS"
-  ]
-  edge [
-    source 56
-    target 22
-    relation "CALLS"
-  ]
-  edge [
-    source 57
-    target 48
-    relation "IMPORTS"
-  ]
-  edge [
-    source 57
-    target 3
-    relation "IMPORTS"
-  ]
-  edge [
-    source 57
-    target 1
-    relation "IMPORTS"
-  ]
-  edge [
-    source 57
-    target 58
-    relation "DEFINES"
-  ]
-  edge [
-    source 57
-    target 59
-    relation "DEFINES"
-  ]
-  edge [
-    source 57
-    target 60
-    relation "DEFINES"
-  ]
-  edge [
-    source 57
-    target 62
-    relation "DEFINES"
-  ]
-  edge [
-    source 57
-    target 63
-    relation "DEFINES"
-  ]
-  edge [
-    source 57
-    target 66
-    relation "DEFINES"
-  ]
-  edge [
-    source 60
-    target 61
-    relation "CALLS"
-  ]
-  edge [
-    source 60
-    target 8
-    relation "CALLS"
-  ]
-  edge [
-    source 62
-    target 22
-    relation "CALLS"
-  ]
-  edge [
-    source 62
-    target 40
-    relation "CALLS"
-  ]
-  edge [
-    source 63
-    target 64
-    relation "CALLS"
-  ]
-  edge [
-    source 63
-    target 65
-    relation "CALLS"
-  ]
-  edge [
-    source 66
-    target 67
-    relation "CALLS"
-  ]
-  edge [
-    source 66
-    target 65
+    source 41
+    target 35
     relation "CALLS"
   ]
 ]

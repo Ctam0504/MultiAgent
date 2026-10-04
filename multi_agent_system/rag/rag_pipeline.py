@@ -58,7 +58,7 @@ class GraphRAGRetriever:
 
         for fn in file_nodes:
             file_data = graph.nodes[fn]
-            fpath = file_data.get("path", fn)
+            fpath = str(file_data.get("path", fn)).replace("\\", "/")
             summary.append(f"- [{str(file_data.get('lang', '')).upper()}] {fpath}")
 
             imports = sorted(

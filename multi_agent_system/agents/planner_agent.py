@@ -14,6 +14,7 @@ from ..tools.language_detector import detect_language_from_folder
 from ..rag.ast_extractor import parse_codebase_to_graph_and_chunks
 from ..rag.rag_pipeline import GraphRAGRetriever
 from .. import config
+from ..tools.draw import generate_ascii_tree
 
 class PlannerAgent(BaseAgent):
     def __init__(
@@ -35,23 +36,35 @@ QUY TẮC BẮT BUỘC DÀNH CHO JAVA:
 1. Mọi `filepath` phải có đuôi `.java` và tuân thủ chuẩn cấu trúc package (ví dụ: `models/User.java`, `services/UserService.java`).
 2. Tên Class PHẢI TRÙNG KHỚP 100% với tên file `.java` (ví dụ: `public class User` trong `User.java`).
 3. Khai báo `package` ở đầu mỗi file phù hợp với đường dẫn thư mục.
-4. Đảm bảo import, dependancy đầy đủ giữa các package.
+4. Đảm bảo import, dependancy đầy đủ giữa các package dựa trên cây thư mục.
 """
         elif lang_lower in ["c", "cpp"]:
             return """
 QUY TẮC BẮT BUỘC DÀNH CHO C:
 1. Tạo đầy đủ các file Header (`.h`) cho interface/structs và file nguồn (`.c`) cho logic triển khai.
 2. File Header PHẢI có Include Guards (`#ifndef ..._H`, `#define ..._H`, `#endif`).
-3. Sử dụng `#include "relative_path/file.h"` để liên kết giữa các module.
+3. Sử dụng `#include "relative_path/file.h"` chính xác dựa vào cây thư mục để liên kết giữa các module.
 4. Tách biệt rõ ràng giữa khai báo (Header) và triển khai (Source code).
 """
         else:  # python
             return """
 QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
 1. Tất cả `filepath` phải có đuôi `.py`.
-2. Sử dụng import tương đối/tuyệt đối chuẩn xác dựa trên cấu trúc các tệp đã lên kế hoạch.
+2. Sử dụng import tương đối/tuyệt đối chuẩn xác dựa trên cây thư mục đã lên kế hoạch.
 3. Đảm bảo cấu trúc module rõ ràng, phân chia tầng hợp lý.
 """
+
+    async def draw_folder_structure(self, folder: Optional[str]) -> str:
+        if not folder or not os.path.exists(folder):
+            structure = "(Thư mục không tồn tại / Dự án rỗng)\n"
+        else:
+            structure = generate_ascii_tree(folder)
+
+        print(
+            "\n🌳 [Planner: Draw] Cây thư mục hiện tại:\n"
+            f"{structure}"
+        )
+        return structure
 
     async def _retrieve_graphrag_context(self, folder: Optional[str]) -> str:
         if not folder or not os.path.exists(folder):
@@ -105,8 +118,11 @@ QUY TẮC BẮT BUỘC DÀNH CHO PYTHON:
         # 2. Phân tích ngữ cảnh Codebase hiện hữu bằng GraphRAG nếu có
         graphrag_context = await self._retrieve_graphrag_context(input_folder)
 
-        rag_section = f"\n### [NGỮ CẢNH CODEBASE ĐÃ CÓ TỪ ĐỒ THỊ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
-
+        rag_section = f"\n### [Thông tin folder tập tin hiện tại]:\n{graphrag_context}\n" if graphrag_context else ""
+        folder_structure = (
+            f"\n### [Cây thư mục hiện tại]:\n"
+            f"{await self.draw_folder_structure(input_folder)}\n"
+        )
         # 3. Tạo Prompt lập kế hoạch kiến trúc
         guidelines = self._get_language_guidelines(resolved_lang)
         json_schema_desc = """
@@ -119,7 +135,7 @@ Trả về DUY NHẤT một JSON Object hợp lệ theo cấu trúc sau:
     {
       "filepath": "đường dẫn tương đối của file kèm đuôi",
       "action": "CREATE hoặc MODIFY hoặc KEEP",
-      "dependencies": ["các_file_mà_file_này_phụ_thuộc, các thư viện mà file sử dụng"],
+      "dependencies": ["các_file_mà_file_này_phụ_thuộc, các thư viện mà file sử dụng (Dựa vào cấu trúc thư mục hiện tại)"],
       "purpose": "mục đích và trách nhiệm của tệp",
       "interface_summary": "chi tiết các Class, Function signatures, Structs hoặc Headers"
     }
@@ -133,7 +149,11 @@ Nhiệm vụ: Phân tích yêu cầu bài toán và thiết kế cấu trúc ĐA
 
 ### [YÊU CẦU BÀI TOÁN]:
 {task_prompt}
+
 {rag_section}
+
+{folder_structure}
+
 ### [QUY TẮC THIẾT KẾ KIẾN TRÚC]:
 ### Nếu codebase rỗng:
 1. Thiết kế module hóa sạch sẽ, tách biệt trách nhiệm (Single Responsibility).
@@ -188,7 +208,11 @@ Chỉ trả về JSON object thuần túy, không chèn lời mở đầu hay k�
         Cập nhật lại kế hoạch và cây thư mục khi Reviewer xác định lỗi Global.
         """
         graphrag_context = await self._retrieve_graphrag_context(current_folder)
-        rag_section = f"\n### [NGỮ CẢNH CODEBASE ĐÃ CÓ TỪ GRAPHRAG]:\n{graphrag_context}\n" if graphrag_context else ""
+        rag_section = f"\n### [Thông tin folder tập tin hiện tại]:\n{graphrag_context}\n" if graphrag_context else ""
+        folder_structure = (
+            f"\n### [Cây thư mục hiện tại]:\n"
+            f"{await self.draw_folder_structure(current_folder)}\n"
+        )
         guidelines = self._get_language_guidelines(current_plan.target_language)
 
         prompt = f"""BẠN LÀ SYSTEM ARCHITECT AGENT.
@@ -201,6 +225,9 @@ Yêu cầu bài toán: {task_prompt}
 {reviewer_instructions}
 
 {rag_section}
+
+{folder_structure}
+
 {guidelines}
 
 ### [NHIỆM VỤ]:
@@ -219,7 +246,7 @@ Trả về DUY NHẤT một JSON Object hợp lệ của `MultiFilePlan`:
     {{
       "filepath": "đường dẫn file",
       "action": "CREATE hoặc MODIFY hoặc KEEP",
-      "dependencies": ["file_phụ_thuộc"],
+      "dependencies": ["file_phụ_thuộc (Dựa vào cấu trúc thư mục hiện tại)"],
       "purpose": "mục đích",
       "interface_summary": "chi tiết interface/class/method đã sửa"
     }}

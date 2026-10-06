@@ -41,8 +41,12 @@ class FileSpec(BaseModel):
         description="Hành động đối với file: 'CREATE' hoặc 'MODIFY'"
     )
     dependencies: List[str] = Field(
-        default_factory=list, 
-        description="Danh sách filepath mà file này trực tiếp import hoặc include"
+        default_factory=list,
+        description="Danh sách filepath nội bộ chính xác mà file này trực tiếp phụ thuộc"
+    )
+    external_dependencies: List[str] = Field(
+        default_factory=list,
+        description="Danh sách thư viện hoặc package bên ngoài mà file này sử dụng"
     )
     purpose: str = Field(
         ..., 

@@ -69,6 +69,8 @@ QUY TẮC BẮT BUỘC CHO PYTHON:
                 dep_context += f"\n--- NỘI DUNG TỆP PHỤ THUỘ `{dep}` ---\n{created_files_context[dep]}\n"
 
         existing_files_list = list(created_files_context.keys())
+        internal_dependencies = file_spec.dependencies
+        external_dependencies = file_spec.external_dependencies
         lang_rules = self._get_language_rules(target_language)
 
         feedback_section = ""
@@ -101,7 +103,8 @@ Nhiệm vụ: Viết mã nguồn HOÀN CHỈNH cho tệp tin: `{file_spec.filepa
 - Hành động: `{file_spec.action}`
 - Mục đích: {file_spec.purpose}
 - Interface yêu cầu: {file_spec.interface_summary}
-- Tệp phụ thuộc: {file_spec.dependencies}
+- File phụ thuộc nội bộ (filepath chính xác): {internal_dependencies}
+- Thư viện/package bên ngoài: {external_dependencies}
 
 ### [DANH SÁCH CÁC TỆP ĐÃ CÓ TRONG WORKSPACE]:
 {existing_files_list}

@@ -36,10 +36,13 @@ QUY TẮC BẮT BUỘC CHO JAVA:
         elif lang_lower in ["c", "cpp"]:
             return """
 QUY TẮC BẮT BUỘC CHO C:
-1. Nếu là file Header (`.h`): BẮT BUỘC có Include Guards (`#ifndef TÊN_FILE_H ... #define TÊN_FILE_H ... #endif`). Khai báo struct và nguyên mẫu hàm (function prototypes).
-2. Nếu là file Source (`.c`): BẮT BUỘC `#include "tương_ứng.h"` và triển khai đầy đủ thân hàm.
-3. Sử dụng đúng kiểu dữ liệu chuẩn (`stdlib.h`, `stdio.h`, `string.h`, `stdbool.h`...).
-4. Triển khai đầy đủ logic, không để comment TODO hay placeholder.
+1. Mọi đường dẫn header nội bộ phải lấy từ `dependencies` của FileSpec và giữ nguyên đầy đủ filepath tương đối từ project root, dùng dấu `/` trong câu lệnh include. Ví dụ dependency `include/main.h` thì viết `#include "include/main.h"`; không rút về basename (`main.h`) hoặc tự đổi thành đường dẫn tương đối với thư mục source.
+2. Dùng `#include "..."` cho header nội bộ của dự án; dùng `#include <...>` cho header chuẩn/thư viện bên ngoài.
+3. Nếu cần header nội bộ nhưng header đó không có trong `dependencies`, không tự đoán tên hay đường dẫn; chỉ dùng các dependency đã khai báo.
+4. Nếu là file Header (`.h`): BẮT BUỘC có Include Guards (`#ifndef ...`, `#define ...`, `#endif`), khai báo các kiểu cần chia sẻ và nguyên mẫu hàm liên quan.
+5. Nếu là file Source (`.c`): include các header nội bộ cần thiết theo quy tắc trên và triển khai đầy đủ thân hàm.
+6. Sử dụng đúng header chuẩn cần thiết (`stdlib.h`, `stdio.h`, `string.h`, `stdbool.h`...); không include thừa hoặc thay header chuẩn bằng header dự án.
+7. Triển khai đầy đủ logic, không để comment TODO hay placeholder.
 """
         else:  # python
             return """

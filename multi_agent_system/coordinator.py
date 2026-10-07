@@ -236,6 +236,14 @@ class MultiAgentCoordinator:
         print(f"   -> Ngôn ngữ đích xác định: {lang.upper()}")
         print(f"   -> Mẫu kiến trúc: {self.current_plan.architecture_pattern}")
         print(f"   -> Thứ tự sinh file Topo: {self.current_plan.execution_order}")
+        print("   -> Chi tiết FileSpec:")
+        for file_spec in self.current_plan.files:
+            print(f"      [FileSpec] {file_spec.filepath}")
+            print(f"         action: {file_spec.action}")
+            print(f"         dependencies: {file_spec.dependencies}")
+            print(f"         external_dependencies: {file_spec.external_dependencies}")
+            print(f"         purpose: {file_spec.purpose}")
+            print(f"         interface_summary: {file_spec.interface_summary}")
 
         # ----------------------------------------------------------------------
         # BƯỚC 2: CODER SINH MÃ NGUỒN CÁC TỆP ĐẦU TIÊN

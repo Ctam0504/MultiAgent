@@ -135,7 +135,7 @@ Trả về DUY NHẤT một JSON Object hợp lệ theo cấu trúc sau:
     {
       "filepath": "đường dẫn tương đối của file kèm đuôi",
       "action": "CREATE hoặc MODIFY hoặc KEEP",
-      "dependencies": ["filepath nội bộ chính xác từ manifest, ví dụ: src/include/user.h"],
+      "dependencies": ["relative_path/file chính xác từ manifest, ví dụ: src/include/user.h"],
       "external_dependencies": ["tên thư viện/package bên ngoài, ví dụ: stdio.h hoặc java.util.List"],
       "purpose": "mục đích và trách nhiệm của tệp",
       "interface_summary": "chi tiết các Class, Function signatures, Structs hoặc Headers"
@@ -247,7 +247,7 @@ Trả về DUY NHẤT một JSON Object hợp lệ của `MultiFilePlan`:
     {{
       "filepath": "đường dẫn file",
       "action": "CREATE hoặc MODIFY hoặc KEEP",
-      "dependencies": ["filepath nội bộ chính xác từ manifest, ví dụ: src/include/user.h"],
+      "dependencies": ["relative_path/file chính xác từ manifest, ví dụ: src/include/user.h"],
       "external_dependencies": ["tên thư viện/package bên ngoài, ví dụ: stdio.h hoặc java.util.List"],
       "purpose": "mục đích",
       "interface_summary": "chi tiết interface/class/method đã sửa"

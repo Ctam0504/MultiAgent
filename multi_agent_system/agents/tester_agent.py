@@ -150,7 +150,8 @@ Testcase của bạn đã gặp **LỖI TESTCASE (TESTER FAULTY)**: Reviewer xá
 {fmt_instruction}
 
 ### [NHIỆM VỤ]:
-Viết lại mã nguồn kiểm thử chuẩn xác, sửa đúng các assertion bị sai.
+1. Phân tích chỉ thị của Reviewer và chỉ ra chính xác các test assertion / điều kiện cần sửa.
+2. Viết lại bộ testcase hoàn chỉnh đã khắc phục toàn bộ lỗi trên.
 CHỈ TRẢ VỀ MÃ KIỂM THỬ trong khối ```{target_language} ... ```. Không giải thích gì thêm.
 """
 

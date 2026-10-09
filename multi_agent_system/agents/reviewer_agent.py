@@ -64,7 +64,7 @@ Các tệp: {[f.filepath for f in plan.files]}
 {error_msg if error_msg else "Mã nguồn thực thi thành công, không có lỗi runtime."}
 
 ### QUY TRÌNH THẨM ĐỊNH VÀ NGUYÊN TẮC PHÂN ĐỊNH TRÁCH NHIỆM:
-Danh sách file trách nhiệm:
+Danh sách file trách nhiệm sửa lỗi:
  + Tester: file test_harness.py, test_harness.java, test_harness.c
  + Coder và Planner: tất cả các file còn lại trong project.
 
@@ -84,24 +84,24 @@ BƯỚC 2: CÂY QUYẾT ĐỊNH PHÂN ĐỊNH TRÁCH NHIỆM (CHỌN DUY NHẤT 
 
 1. **LỖI BIÊN DỊCH / CÚ PHÁP TẠI TỆP MÃ NGUỒN DỰ ÁN (TUYỆT ĐỐI KHÔNG CHỌN TESTER):**
    - Nếu tệp bị lỗi trong log là tệp mã nguồn của Coder/Planner (ví dụ: `services/MovieService.java:8: error: cannot find symbol`, `data/MovieRepository.java`, `Main.java`):
-     -> NGUYÊN TẮC CỐT LÕI: Khi mã nguồn dự án không biên dịch được, TestHarness CHƯA TỪNG ĐƯỢC CHẠY. Do đó lỗi 100% thuộc về CODER hoặc PLANNER, NGHIÊM CẤM ĐỔ LỖI CHO TESTER!
+     -> NGUYÊN TẮC CỐT LÕI: Khi mã nguồn dự án không biên dịch được. Do đó lỗi 100% thuộc về CODER hoặc PLANNER, NGHIÊM CẤM ĐỔ LỖI CHO TESTER!
    - Phân định giữa PLANNER và CODER:
-     + **PLANNER (GLOBAL)**: Lỗi cấu trúc/kiến trúc đa tệp - thiếu file interface (ví dụ code ghi `implements MovieServiceInterface` nhưng kế hoạch kiến trúc không có file `MovieServiceInterface.java`), sai cấu trúc package/import giữa các thư viện/module, hoặc lệch chữ ký phương thức giữa hai tầng Service/Repository.
+     + **PLANNER (GLOBAL)**: Lỗi cấu trúc/kiến trúc đa tệp - sai file path của import/include, thiếu file interface (ví dụ code ghi `implements MovieServiceInterface` nhưng kế hoạch kiến trúc không có file `MovieServiceInterface.java`), sai cấu trúc package/import giữa các thư viện/module, hoặc lệch chữ ký phương thức giữa hai tầng Service/Repository.
      + **CODER (LOCAL)**: Lỗi cú pháp nội bộ một file, lỗi triển khai thân hàm, sai kiểu dữ liệu, hoặc Coder tự ý khởi tạo interface (`new Repository()`), gọi sai constructor của class nội bộ.
 
 2. LỖI BIÊN DỊCH / KHÔNG TÌM THẤY KÝ HIỆU TẠI TỆP KIỂM THỬ (TEST HARNESS):
-   (Áp dụng khi log lỗi biên dịch/import chỉ ra vị trí đứt gãy nằm trong file TestHarness)
+   (Áp dụng khi log lỗi biên dịch/import chỉ ra vị trí đứt gãy xuất hiện, nằm trong file TestHarness)
 
    👉 BẮT BUỘC LẤY SPECIFICATION LÀM CHÂN LÝ ĐỂ ĐỐI CHIẾU:
    Trích xuất đúng Class / Method / Field / Signature đang bị báo lỗi trong TestHarness và so sánh với [1. YÊU CẦU BÀI TOÁN GỐC (SPECIFICATION)]:
 
    + TRƯỜNG HỢP 2.1 - CODER SAI (CODER / LOCAL):
-     Nếu Class / Method / Signature mà TestHarness gọi CÓ ĐƯỢC YÊU CẦU TRONG SPECIFICATION, nhưng Coder không khai báo, đặt sai tên, truyền sai tham số, hoặc chưa triển khai.
+     Nếu Class / Method / Signature /Interface mà TestHarness gọi CÓ ĐƯỢC YÊU CẦU TRONG SPECIFICATION, nhưng Coder không khai báo, đặt sai tên, truyền sai tham số, hoặc chưa triển khai.
      -> PHÁN QUYẾT: CODER (LOCAL).
      -> Root cause: Coder vi phạm hợp đồng (Contract) đã được quy định trong Specification.
 
    + TRƯỜNG HỢP 2.2 - TESTER SAI (TESTER / TESTCASE):
-     Nếu Class / Method / Signature mà TestHarness gọi KHÔNG XUẤT HIỆN TRONG SPECIFICATION (Tester tự bịa ra tên hàm/Class mới, truyền thêm tham số không có trong đề bài, hoặc import sai package).
+     Nếu Class / Method / Signature /Interface mà TestHarness gọi KHÔNG XUẤT HIỆN TRONG SPECIFICATION (Tester tự bịa ra tên hàm/Class/Interface mới, truyền thêm tham số không có trong đề bài, hoặc import/include sai package, class, thư viện).
      -> PHÁN QUYẾT: TESTER (TESTCASE).
      -> Root cause: Tester tự ý thay đổi Hợp đồng API (Contract) khác với yêu cầu bài toán gốc.
 
